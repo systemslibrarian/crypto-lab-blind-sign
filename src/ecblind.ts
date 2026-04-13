@@ -3,6 +3,7 @@ import { sha512 } from '@noble/hashes/sha512';
 
 const CURVE_ORDER = ed25519.CURVE.n;
 const BASE = ed25519.Point.BASE;
+type EdPoint = typeof BASE;
 
 export interface EcBlindTranscript {
   publicKeyHex: string;
@@ -59,13 +60,13 @@ export async function runEcBlindSignatureDemo(message: string): Promise<EcBlindT
   };
 }
 
-function verifySchnorr(R: ed25519.Point, P: ed25519.Point, e: bigint, s: bigint): boolean {
+function verifySchnorr(R: EdPoint, P: EdPoint, e: bigint, s: bigint): boolean {
   const left = BASE.multiply(s);
   const right = R.add(P.multiply(e));
   return left.equals(right);
 }
 
-function hashChallenge(R: ed25519.Point, P: ed25519.Point, message: Uint8Array): bigint {
+function hashChallenge(R: EdPoint, P: EdPoint, message: Uint8Array): bigint {
   const input = concatBytes(R.toRawBytes(), P.toRawBytes(), message);
   const digest = sha512(input);
   return mod(bytesToBigInt(digest), CURVE_ORDER);
