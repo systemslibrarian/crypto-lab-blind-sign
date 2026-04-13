@@ -88,6 +88,8 @@ setupThemeToggle();
 function announce(message: string): void {
   const region = document.getElementById('aria-live-polite');
   if (region) {
+    region.textContent = '';
+    void region.offsetWidth;
     region.textContent = message;
   }
 }
@@ -241,7 +243,10 @@ function wireProtocolExhibit(): void {
   const status = byId('protocol-status');
   const flow = byId('flow-pill');
 
-  byId('protocol-blind').addEventListener('click', async () => {
+  const blindBtn = byId('protocol-blind');
+  blindBtn.addEventListener('click', async () => {
+    if (blindBtn.hasAttribute('aria-busy')) return;
+    blindBtn.setAttribute('aria-busy', 'true');
     status.textContent = 'Generating RSA keypair and blinding message…';
     announce('Generating RSA keypair and blinding message');
     const transcript = await runRsaBlindSignatureDemo('Chaum blind signature request');
@@ -259,9 +264,12 @@ function wireProtocolExhibit(): void {
     ].join('\n');
 
     flow.textContent = 'message wrapped by blinding factor r';
+    flow.classList.remove('animate');
+    void flow.offsetWidth;
     flow.classList.add('animate');
     status.textContent = 'Blind step complete.';
     announce('Blind step complete. Message is now blinded.');
+    blindBtn.removeAttribute('aria-busy');
   });
 
   byId('protocol-sign').addEventListener('click', () => {
@@ -323,7 +331,10 @@ function wireCashExhibit(): void {
   const status = byId('cash-status');
   const log = byId('cash-log');
 
-  byId('cash-issue').addEventListener('click', async () => {
+  const issueBtn = byId('cash-issue');
+  issueBtn.addEventListener('click', async () => {
+    if (issueBtn.hasAttribute('aria-busy')) return;
+    issueBtn.setAttribute('aria-busy', 'true');
     const serial = randomToken('COIN');
     status.textContent = 'Issuing blind-signed coin…';
     announce('Issuing blind-signed coin');
@@ -337,6 +348,7 @@ function wireCashExhibit(): void {
       'Bank signed a blinded serial number.',
       'Bank cannot link this serial to Alice identity.'
     ].join('\n');
+    issueBtn.removeAttribute('aria-busy');
   });
 
   byId('cash-spend').addEventListener('click', () => {
@@ -386,7 +398,10 @@ function wireVotingExhibit(): void {
   const log = byId('vote-log');
   const select = byId('vote-choice') as HTMLSelectElement;
 
-  byId('vote-issue').addEventListener('click', async () => {
+  const voteIssueBtn = byId('vote-issue');
+  voteIssueBtn.addEventListener('click', async () => {
+    if (voteIssueBtn.hasAttribute('aria-busy')) return;
+    voteIssueBtn.setAttribute('aria-busy', 'true');
     const token = randomToken('BALLOT');
     status.textContent = 'Issuing ballot token…';
     announce('Issuing anonymous ballot token');
@@ -398,6 +413,7 @@ function wireVotingExhibit(): void {
       `Token: ${token}`,
       'Authority signs blinded token and learns no voter-choice link.'
     ].join('\n');
+    voteIssueBtn.removeAttribute('aria-busy');
   });
 
   byId('vote-submit').addEventListener('click', () => {
@@ -430,7 +446,10 @@ function wireCredentialExhibit(): void {
   const status = byId('cred-status');
   const log = byId('cred-log');
 
-  byId('cred-issue').addEventListener('click', async () => {
+  const credIssueBtn = byId('cred-issue');
+  credIssueBtn.addEventListener('click', async () => {
+    if (credIssueBtn.hasAttribute('aria-busy')) return;
+    credIssueBtn.setAttribute('aria-busy', 'true');
     const claim = 'attribute:over18=true';
     status.textContent = 'Issuing blind-signed credential…';
     announce('Issuing blind-signed age credential');
@@ -442,6 +461,7 @@ function wireCredentialExhibit(): void {
       'Claim issued: over18=true',
       'Issuer saw only blinded attribute request during signing.'
     ].join('\n');
+    credIssueBtn.removeAttribute('aria-busy');
   });
 
   byId('cred-present').addEventListener('click', () => {
@@ -464,7 +484,10 @@ function wireCredentialExhibit(): void {
 function wireCompareExhibit(): void {
   const log = byId('compare-log');
 
-  byId('compare-run').addEventListener('click', async () => {
+  const compareBtn = byId('compare-run');
+  compareBtn.addEventListener('click', async () => {
+    if (compareBtn.hasAttribute('aria-busy')) return;
+    compareBtn.setAttribute('aria-busy', 'true');
     log.textContent = 'Running RSA blind and EC blind demos for timing…';
     announce('Running timing comparison between RSA and EC blind signatures');
 
@@ -494,6 +517,7 @@ function wireCompareExhibit(): void {
     ].join('\n');
 
     announce(`Comparison complete. RSA: ${rsaMs.toFixed(0)}ms, EC: ${ecMs.toFixed(0)}ms. Both verified.`);
+    compareBtn.removeAttribute('aria-busy');
   });
 }
 

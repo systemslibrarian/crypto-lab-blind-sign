@@ -118,7 +118,7 @@ export function modPow(base: bigint, exponent: bigint, modulus: bigint): bigint 
     throw new Error('Invalid modulus');
   }
   let result = 1n;
-  let b = base % modulus;
+  let b = ((base % modulus) + modulus) % modulus;
   let e = exponent;
   while (e > 0n) {
     if (e & 1n) {
