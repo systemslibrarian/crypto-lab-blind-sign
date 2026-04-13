@@ -18,38 +18,47 @@
     <title>Crypto Lab: Blind Signatures</title>
   </head>
   <body>
-    <header class="site-header" style="position: relative;">
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <div id="aria-live-polite" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+    <div id="aria-live-assertive" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+    <header class="site-header" role="banner" style="position: relative;">
       <button
         id="theme-toggle"
         class="theme-toggle"
         aria-label="Switch to light mode"
+        title="Toggle color theme"
         style="position: absolute; top: 0; right: 0"
-      >🌙</button>
-      <div>
-        <p class="category-chip">Privacy Cryptography</p>
-        <h1>Blind Signature Lab</h1>
+      ><span id="theme-icon" aria-hidden="true">🌙</span></button>
+      <div class="header-inner">
+        <div class="header-meta">
+          <span class="category-chip" aria-label="Category: Privacy Cryptography">Privacy Cryptography</span>
+        </div>
+        <h1 class="site-title">Blind Signature Lab</h1>
         <p class="subtitle">Interactive exhibits for blind signatures, e-cash, anonymous credentials, and private voting.</p>
       </div>
     </header>
 
     <nav class="panel-nav" aria-label="Exhibit navigation">
-      <button class="tab-btn active" data-panel="protocol">The Protocol</button>
-      <button class="tab-btn" data-panel="cash">Chaum's E-Cash</button>
-      <button class="tab-btn" data-panel="voting">Anonymous Voting</button>
-      <button class="tab-btn" data-panel="credentials">Anonymous Credentials</button>
-      <button class="tab-btn" data-panel="compare">RSA vs EC Blind</button>
+      <div class="tab-list" role="tablist" aria-label="Blind signature exhibits">
+        <button class="tab-btn active" role="tab" id="tab-protocol" aria-selected="true" aria-controls="protocol" data-panel="protocol">The Protocol</button>
+        <button class="tab-btn" role="tab" id="tab-cash" aria-selected="false" aria-controls="cash" data-panel="cash" tabindex="-1">Chaum's E-Cash</button>
+        <button class="tab-btn" role="tab" id="tab-voting" aria-selected="false" aria-controls="voting" data-panel="voting" tabindex="-1">Anonymous Voting</button>
+        <button class="tab-btn" role="tab" id="tab-credentials" aria-selected="false" aria-controls="credentials" data-panel="credentials" tabindex="-1">Anonymous Credentials</button>
+        <button class="tab-btn" role="tab" id="tab-compare" aria-selected="false" aria-controls="compare" data-panel="compare" tabindex="-1">RSA vs EC Blind</button>
+      </div>
     </nav>
 
-    <main>
-      <section id="protocol" class="panel active"></section>
-      <section id="cash" class="panel"></section>
-      <section id="voting" class="panel"></section>
-      <section id="credentials" class="panel"></section>
-      <section id="compare" class="panel"></section>
+    <main id="main-content">
+      <section id="protocol" class="panel active" role="tabpanel" aria-labelledby="tab-protocol" tabindex="0"></section>
+      <section id="cash" class="panel" role="tabpanel" aria-labelledby="tab-cash" tabindex="0"></section>
+      <section id="voting" class="panel" role="tabpanel" aria-labelledby="tab-voting" tabindex="0"></section>
+      <section id="credentials" class="panel" role="tabpanel" aria-labelledby="tab-credentials" tabindex="0"></section>
+      <section id="compare" class="panel" role="tabpanel" aria-labelledby="tab-compare" tabindex="0"></section>
     </main>
 
-    <footer class="site-footer">
-      <p>So whether you eat or drink or whatever you do, do it all for the glory of God. - 1 Corinthians 10:31</p>
+    <footer class="site-footer" role="contentinfo">
+      <p>So whether you eat or drink or whatever you do, do it all for the glory of God. &mdash; 1 Corinthians 10:31</p>
     </footer>
 
     <script type="module" src="/src/main.ts"></script>
