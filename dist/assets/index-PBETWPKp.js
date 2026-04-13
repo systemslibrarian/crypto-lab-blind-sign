@@ -1,0 +1,6 @@
+(function(){const r=document.createElement("link").relList;if(r&&r.supports&&r.supports("modulepreload"))return;for(const e of document.querySelectorAll('link[rel="modulepreload"]'))i(e);new MutationObserver(e=>{for(const t of e)if(t.type==="childList")for(const s of t.addedNodes)s.tagName==="LINK"&&s.rel==="modulepreload"&&i(s)}).observe(document,{childList:!0,subtree:!0});function o(e){const t={};return e.integrity&&(t.integrity=e.integrity),e.referrerPolicy&&(t.referrerPolicy=e.referrerPolicy),e.crossOrigin==="use-credentials"?t.credentials="include":e.crossOrigin==="anonymous"?t.credentials="omit":t.credentials="same-origin",t}function i(e){if(e.ep)return;e.ep=!0;const t=o(e);fetch(e.href,t)}})();const n=Array.from(document.querySelectorAll(".tab-btn")),a=Array.from(document.querySelectorAll(".panel"));for(const c of n)c.addEventListener("click",()=>{n.forEach(o=>o.classList.remove("active")),a.forEach(o=>o.classList.remove("active")),c.classList.add("active");const r=document.getElementById(c.dataset.panel??"");r==null||r.classList.add("active")});const l=document.getElementById("protocol");l&&(l.innerHTML=`
+    <div class="card">
+      <h2>Protocol Overview</h2>
+      <p>Scaffold ready. Protocol exhibit implementation begins in Phase 6.</p>
+    </div>
+  `);
