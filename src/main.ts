@@ -247,29 +247,35 @@ function wireProtocolExhibit(): void {
   blindBtn.addEventListener('click', async () => {
     if (blindBtn.hasAttribute('aria-busy')) return;
     blindBtn.setAttribute('aria-busy', 'true');
-    status.textContent = 'Generating RSA keypair and blinding message…';
-    announce('Generating RSA keypair and blinding message');
-    const transcript = await runRsaBlindSignatureDemo('Chaum blind signature request');
-    state.rsa = transcript;
+    try {
+      status.textContent = 'Generating RSA keypair and blinding message…';
+      announce('Generating RSA keypair and blinding message');
+      const transcript = await runRsaBlindSignatureDemo('Chaum blind signature request');
+      state.rsa = transcript;
 
-    requesterLog.textContent = [
-      `m = ${shortHex(transcript.messageRepresentative)}`,
-      `r = ${shortHex(transcript.blindingFactor)}`,
-      `m' = m × r^e mod n = ${shortHex(transcript.blindedMessage)}`
-    ].join('\n');
+      requesterLog.textContent = [
+        `m = ${shortHex(transcript.messageRepresentative)}`,
+        `r = ${shortHex(transcript.blindingFactor)}`,
+        `m' = m × r^e mod n = ${shortHex(transcript.blindedMessage)}`
+      ].join('\n');
 
-    signerLog.textContent = [
-      `Signer receives only: m' = ${shortHex(transcript.blindedMessage)}`,
-      'Signer has not seen m or r.'
-    ].join('\n');
+      signerLog.textContent = [
+        `Signer receives only: m' = ${shortHex(transcript.blindedMessage)}`,
+        'Signer has not seen m or r.'
+      ].join('\n');
 
-    flow.textContent = 'message wrapped by blinding factor r';
-    flow.classList.remove('animate');
-    void flow.offsetWidth;
-    flow.classList.add('animate');
-    status.textContent = 'Blind step complete.';
-    announce('Blind step complete. Message is now blinded.');
-    blindBtn.removeAttribute('aria-busy');
+      flow.textContent = 'message wrapped by blinding factor r';
+      flow.classList.remove('animate');
+      void flow.offsetWidth;
+      flow.classList.add('animate');
+      status.textContent = 'Blind step complete.';
+      announce('Blind step complete. Message is now blinded.');
+    } catch (err) {
+      status.textContent = `Error: ${err instanceof Error ? err.message : 'unknown'}`;
+      announce('Blind step failed.');
+    } finally {
+      blindBtn.removeAttribute('aria-busy');
+    }
   });
 
   byId('protocol-sign').addEventListener('click', () => {
@@ -335,26 +341,37 @@ function wireCashExhibit(): void {
   issueBtn.addEventListener('click', async () => {
     if (issueBtn.hasAttribute('aria-busy')) return;
     issueBtn.setAttribute('aria-busy', 'true');
-    const serial = randomToken('COIN');
-    status.textContent = 'Issuing blind-signed coin…';
-    announce('Issuing blind-signed coin');
-    const transcript = await runRsaBlindSignatureDemo(serial);
-    state.ecash.coin = `${serial}:${transcript.unblindedSignature.toString(16)}`;
-    state.ecash.spent = false;
-    status.textContent = 'Bank issued blind-signed coin.';
-    announce('Coin issued successfully. Bank cannot link serial to identity.');
-    log.textContent = [
-      `Coin serial: ${serial}`,
-      'Bank signed a blinded serial number.',
-      'Bank cannot link this serial to Alice identity.'
-    ].join('\n');
-    issueBtn.removeAttribute('aria-busy');
+    try {
+      const serial = randomToken('COIN');
+      status.textContent = 'Issuing blind-signed coin…';
+      announce('Issuing blind-signed coin');
+      const transcript = await runRsaBlindSignatureDemo(serial);
+      state.ecash.coin = `${serial}:${transcript.unblindedSignature.toString(16)}`;
+      state.ecash.spent = false;
+      status.textContent = 'Bank issued blind-signed coin.';
+      announce('Coin issued successfully. Bank cannot link serial to identity.');
+      log.textContent = [
+        `Coin serial: ${serial}`,
+        'Bank signed a blinded serial number.',
+        'Bank cannot link this serial to Alice identity.'
+      ].join('\n');
+    } catch (err) {
+      status.textContent = `Error: ${err instanceof Error ? err.message : 'unknown'}`;
+      announce('Coin issuance failed.');
+    } finally {
+      issueBtn.removeAttribute('aria-busy');
+    }
   });
 
   byId('cash-spend').addEventListener('click', () => {
     if (!state.ecash.coin) {
       status.textContent = 'Issue a coin first.';
       announce('Issue a coin first.');
+      return;
+    }
+    if (state.ecash.spent) {
+      status.textContent = 'Coin already spent. Use "Attempt Double Spend" to test reuse detection.';
+      announce('Coin already spent. Use Attempt Double Spend to test reuse detection.');
       return;
     }
     const serial = state.ecash.coin.split(':')[0];
@@ -389,7 +406,8 @@ function wireCashExhibit(): void {
       ].join('\n');
       return;
     }
-    status.textContent = 'No prior spend detected (unexpected state).';
+    status.textContent = 'Spend the coin first before attempting a double spend.';
+    announce('Spend the coin first before attempting a double spend.');
   });
 }
 
@@ -402,18 +420,24 @@ function wireVotingExhibit(): void {
   voteIssueBtn.addEventListener('click', async () => {
     if (voteIssueBtn.hasAttribute('aria-busy')) return;
     voteIssueBtn.setAttribute('aria-busy', 'true');
-    const token = randomToken('BALLOT');
-    status.textContent = 'Issuing ballot token…';
-    announce('Issuing anonymous ballot token');
-    const transcript = await runRsaBlindSignatureDemo(token);
-    state.voting.token = `${token}:${transcript.unblindedSignature.toString(16)}`;
-    status.textContent = 'Authority issued one blind-signed ballot token.';
-    announce('Ballot token issued. Authority cannot link token to voter.');
-    log.textContent = [
-      `Token: ${token}`,
-      'Authority signs blinded token and learns no voter-choice link.'
-    ].join('\n');
-    voteIssueBtn.removeAttribute('aria-busy');
+    try {
+      const token = randomToken('BALLOT');
+      status.textContent = 'Issuing ballot token…';
+      announce('Issuing anonymous ballot token');
+      const transcript = await runRsaBlindSignatureDemo(token);
+      state.voting.token = `${token}:${transcript.unblindedSignature.toString(16)}`;
+      status.textContent = 'Authority issued one blind-signed ballot token.';
+      announce('Ballot token issued. Authority cannot link token to voter.');
+      log.textContent = [
+        `Token: ${token}`,
+        'Authority signs blinded token and learns no voter-choice link.'
+      ].join('\n');
+    } catch (err) {
+      status.textContent = `Error: ${err instanceof Error ? err.message : 'unknown'}`;
+      announce('Ballot token issuance failed.');
+    } finally {
+      voteIssueBtn.removeAttribute('aria-busy');
+    }
   });
 
   byId('vote-submit').addEventListener('click', () => {
@@ -450,18 +474,24 @@ function wireCredentialExhibit(): void {
   credIssueBtn.addEventListener('click', async () => {
     if (credIssueBtn.hasAttribute('aria-busy')) return;
     credIssueBtn.setAttribute('aria-busy', 'true');
-    const claim = 'attribute:over18=true';
-    status.textContent = 'Issuing blind-signed credential…';
-    announce('Issuing blind-signed age credential');
-    const transcript = await runRsaBlindSignatureDemo(claim);
-    state.credential.token = `${claim}:${transcript.unblindedSignature.toString(16)}`;
-    status.textContent = 'Issuer generated blind-signed age credential.';
-    announce('Age credential issued. Issuer cannot identify holder.');
-    log.textContent = [
-      'Claim issued: over18=true',
-      'Issuer saw only blinded attribute request during signing.'
-    ].join('\n');
-    credIssueBtn.removeAttribute('aria-busy');
+    try {
+      const claim = 'attribute:over18=true';
+      status.textContent = 'Issuing blind-signed credential…';
+      announce('Issuing blind-signed age credential');
+      const transcript = await runRsaBlindSignatureDemo(claim);
+      state.credential.token = `${claim}:${transcript.unblindedSignature.toString(16)}`;
+      status.textContent = 'Issuer generated blind-signed age credential.';
+      announce('Age credential issued. Issuer cannot identify holder.');
+      log.textContent = [
+        'Claim issued: over18=true',
+        'Issuer saw only blinded attribute request during signing.'
+      ].join('\n');
+    } catch (err) {
+      status.textContent = `Error: ${err instanceof Error ? err.message : 'unknown'}`;
+      announce('Credential issuance failed.');
+    } finally {
+      credIssueBtn.removeAttribute('aria-busy');
+    }
   });
 
   byId('cred-present').addEventListener('click', () => {
@@ -488,36 +518,42 @@ function wireCompareExhibit(): void {
   compareBtn.addEventListener('click', async () => {
     if (compareBtn.hasAttribute('aria-busy')) return;
     compareBtn.setAttribute('aria-busy', 'true');
-    log.textContent = 'Running RSA blind and EC blind demos for timing…';
-    announce('Running timing comparison between RSA and EC blind signatures');
+    try {
+      log.textContent = 'Running RSA blind and EC blind demos for timing…';
+      announce('Running timing comparison between RSA and EC blind signatures');
 
-    const rsaStart = performance.now();
-    const rsa = await runRsaBlindSignatureDemo('timing sample');
-    const rsaMs = performance.now() - rsaStart;
+      const rsaStart = performance.now();
+      const rsa = await runRsaBlindSignatureDemo('timing sample');
+      const rsaMs = performance.now() - rsaStart;
 
-    const ecStart = performance.now();
-    const ec = await runEcBlindSignatureDemo('timing sample');
-    const ecMs = performance.now() - ecStart;
+      const ecStart = performance.now();
+      const ec = await runEcBlindSignatureDemo('timing sample');
+      const ecMs = performance.now() - ecStart;
 
-    state.rsa = rsa;
-    state.ec = ec;
+      state.rsa = rsa;
+      state.ec = ec;
 
-    byId('cmp-rsa-time').textContent = `${rsaMs.toFixed(2)} ms`;
-    byId('cmp-ec-time').textContent = `${ecMs.toFixed(2)} ms`;
-    byId('cmp-rsa-ok').textContent = rsa.verifyPass ? 'valid' : 'invalid';
-    byId('cmp-ec-ok').textContent = ec.verified ? 'valid' : 'invalid';
+      byId('cmp-rsa-time').textContent = `${rsaMs.toFixed(2)} ms`;
+      byId('cmp-ec-time').textContent = `${ecMs.toFixed(2)} ms`;
+      byId('cmp-rsa-ok').textContent = rsa.verifyPass ? 'valid' : 'invalid';
+      byId('cmp-ec-ok').textContent = ec.verified ? 'valid' : 'invalid';
 
-    log.textContent = [
-      `RSA verify: ${rsa.verifyPass}`,
-      `EC verify: ${ec.verified}`,
-      '',
-      'RSA signer works over modulus n with exponentiation.',
-      'EC signer works over Ed25519 points with scalar operations.',
-      ec.comparison.ecSummary
-    ].join('\n');
+      log.textContent = [
+        `RSA verify: ${rsa.verifyPass}`,
+        `EC verify: ${ec.verified}`,
+        '',
+        'RSA signer works over modulus n with exponentiation.',
+        'EC signer works over Ed25519 points with scalar operations.',
+        ec.comparison.ecSummary
+      ].join('\n');
 
-    announce(`Comparison complete. RSA: ${rsaMs.toFixed(0)}ms, EC: ${ecMs.toFixed(0)}ms. Both verified.`);
-    compareBtn.removeAttribute('aria-busy');
+      announce(`Comparison complete. RSA: ${rsaMs.toFixed(0)}ms, EC: ${ecMs.toFixed(0)}ms. Both verified.`);
+    } catch (err) {
+      log.textContent = `Error: ${err instanceof Error ? err.message : 'unknown'}`;
+      announce('Comparison failed.');
+    } finally {
+      compareBtn.removeAttribute('aria-busy');
+    }
   });
 }
 
