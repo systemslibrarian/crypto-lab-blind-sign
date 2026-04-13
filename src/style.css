@@ -44,6 +44,25 @@ body {
   background: color-mix(in srgb, var(--color-bg-elevated) 90%, transparent);
 }
 
+.theme-toggle {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.theme-toggle:hover {
+  background: var(--color-card);
+}
+
 .category-chip {
   display: inline-block;
   padding: 0.2rem 0.6rem;
@@ -106,6 +125,19 @@ main {
   margin-bottom: 1rem;
 }
 
+.card h2 {
+  margin: 0 0 0.5rem;
+}
+
+.card p {
+  margin-top: 0;
+  color: var(--color-text-muted);
+}
+
+.card.inset {
+  background: var(--color-bg-elevated);
+}
+
 .button-row {
   display: flex;
   flex-wrap: wrap;
@@ -131,6 +163,89 @@ main {
   text-align: center;
 }
 
+.protocol-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.flow-track {
+  margin-top: 0.8rem;
+  border: 1px dashed var(--color-border);
+  border-radius: 999px;
+  padding: 0.3rem;
+  overflow: hidden;
+}
+
+.flow-pill {
+  display: inline-block;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  background: var(--color-secondary);
+  color: var(--color-bg);
+  font-size: 0.8rem;
+  transform: translateX(0);
+}
+
+.flow-pill.animate {
+  animation: move-pill 1s ease;
+}
+
+.status-line {
+  margin-top: 0.8rem;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+pre {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+}
+
+.form-row {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 0.8rem;
+}
+
+select {
+  border: 1px solid var(--color-border);
+  border-radius: 0.6rem;
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  padding: 0.45rem 0.6rem;
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.8rem;
+  margin-bottom: 0.8rem;
+}
+
+.compare-table th,
+.compare-table td {
+  border: 1px solid var(--color-border);
+  text-align: left;
+  padding: 0.55rem;
+}
+
+.compare-note {
+  font-size: 0.9rem;
+}
+
+@keyframes move-pill {
+  0% {
+    transform: translateX(-70%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
 pre, code {
   font-family: var(--font-mono);
 }
@@ -138,5 +253,13 @@ pre, code {
 @media (max-width: 760px) {
   h1 {
     font-size: 1.7rem;
+  }
+
+  .site-header {
+    padding-right: 4rem;
+  }
+
+  .protocol-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -1,6 +1,14 @@
 <!doctype html>
 <html lang="en" data-theme="dark">
   <head>
+    <script>
+      (function () {
+        const saved = localStorage.getItem('theme');
+        document.documentElement.setAttribute(
+          'data-theme', saved ?? 'dark'
+        );
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
@@ -10,7 +18,13 @@
     <title>Crypto Lab: Blind Signatures</title>
   </head>
   <body>
-    <header class="site-header">
+    <header class="site-header" style="position: relative;">
+      <button
+        id="theme-toggle"
+        class="theme-toggle"
+        aria-label="Switch to light mode"
+        style="position: absolute; top: 0; right: 0"
+      >🌙</button>
       <div>
         <p class="category-chip">Privacy Cryptography</p>
         <h1>Blind Signature Lab</h1>
