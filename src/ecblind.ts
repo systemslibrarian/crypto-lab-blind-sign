@@ -5,20 +5,32 @@ const CURVE_ORDER = ed25519.CURVE.n;
 const BASE = ed25519.Point.BASE;
 type EdPoint = typeof BASE;
 
+/**
+ * Full transcript of a blind Schnorr signature over the Ed25519 group. Every
+ * intermediate value is exposed so the UI can walk through the protocol and so
+ * the math can be checked independently in tests.
+ *
+ * Protocol (requester = Alice, signer = S with secret x, public P = x·G):
+ *   1. S picks nonce k, sends commitment R0 = k·G.
+ *   2. Alice picks blinding scalars α, β and forms R' = R0 + α·G + β·P.
+ *   3. Alice computes challenge c = H(R', P, m) and blinded challenge c' = c + β.
+ *   4. S returns partial signature s0 = k + c'·x.
+ *   5. Alice unblinds: s = s0 + α. The pair (R', s) verifies as s·G = R' + c·P.
+ * The signer only ever sees (R0, c', s0) — never the message m or the final (R', s).
+ */
 export interface EcBlindTranscript {
+  messageText: string;
   publicKeyHex: string;
-  message: string;
-  signerNonceCommitmentHex: string;
-  blindedChallengeHex: string;
-  partialSignatureHex: string;
-  unblindedSignatureHex: string;
-  signatureRHex: string;
-  signatureSHex: string;
+  signerNonceCommitmentHex: string; // R0
+  alphaHex: string;
+  betaHex: string;
+  blindedCommitmentHex: string; // R'
+  challengeHex: string; // c
+  blindedChallengeHex: string; // c'
+  partialSignatureHex: string; // s0 (signer output)
+  signatureRHex: string; // R' (final signature first half)
+  signatureSHex: string; // s  (final signature second half)
   verified: boolean;
-  comparison: {
-    rsaSummary: string;
-    ecSummary: string;
-  };
 }
 
 export async function runEcBlindSignatureDemo(message: string): Promise<EcBlindTranscript> {
@@ -26,43 +38,69 @@ export async function runEcBlindSignatureDemo(message: string): Promise<EcBlindT
   const signerPublic = BASE.multiply(signerSecret);
 
   const nonce = randomScalar();
-  const nonceCommitment = BASE.multiply(nonce);
+  const nonceCommitment = BASE.multiply(nonce); // R0
 
   const alpha = randomScalar();
   const beta = randomScalar();
 
+  // R' = R0 + α·G + β·P
   const blindedCommitment = nonceCommitment
     .add(BASE.multiply(alpha))
     .add(signerPublic.multiply(beta));
 
-  const challenge = hashChallenge(blindedCommitment, signerPublic, utf8(message));
-  const blindedChallenge = mod(challenge + beta, CURVE_ORDER);
+  const challenge = hashChallenge(blindedCommitment, signerPublic, utf8(message)); // c
+  const blindedChallenge = mod(challenge + beta, CURVE_ORDER); // c'
 
-  const partialSignature = mod(nonce + blindedChallenge * signerSecret, CURVE_ORDER);
-  const unblindedS = mod(partialSignature + alpha, CURVE_ORDER);
+  const partialSignature = mod(nonce + blindedChallenge * signerSecret, CURVE_ORDER); // s0
+  const unblindedS = mod(partialSignature + alpha, CURVE_ORDER); // s
 
-  const verified = verifySchnorr(blindedCommitment, signerPublic, challenge, unblindedS);
+  const verified = verifyEcBlindSignature(
+    bytesToHex(blindedCommitment.toRawBytes()),
+    bytesToHex(signerPublic.toRawBytes()),
+    message,
+    toHexScalar(unblindedS)
+  );
 
   return {
+    messageText: message,
     publicKeyHex: bytesToHex(signerPublic.toRawBytes()),
-    message,
     signerNonceCommitmentHex: bytesToHex(nonceCommitment.toRawBytes()),
+    alphaHex: toHexScalar(alpha),
+    betaHex: toHexScalar(beta),
+    blindedCommitmentHex: bytesToHex(blindedCommitment.toRawBytes()),
+    challengeHex: toHexScalar(challenge),
     blindedChallengeHex: toHexScalar(blindedChallenge),
     partialSignatureHex: toHexScalar(partialSignature),
-    unblindedSignatureHex: `${bytesToHex(blindedCommitment.toRawBytes())}:${toHexScalar(unblindedS)}`,
     signatureRHex: bytesToHex(blindedCommitment.toRawBytes()),
     signatureSHex: toHexScalar(unblindedS),
-    verified,
-    comparison: {
-      rsaSummary: 'RSA blind signatures require large 2048-bit modulus arithmetic and expensive modular exponentiation.',
-      ecSummary: 'Ed25519 blind Schnorr uses 32-byte keys and fast curve-scalar multiplication for smaller payloads.'
-    }
+    verified
   };
 }
 
-function verifySchnorr(R: EdPoint, P: EdPoint, e: bigint, s: bigint): boolean {
+/**
+ * Independently verify a blind Schnorr signature (R, s) on `message` under
+ * public key P: checks s·G == R + H(R, P, m)·P. Returns false for any forged or
+ * tampered (R, s, m, P) — this is what powers the tamper demonstration.
+ */
+export function verifyEcBlindSignature(
+  signatureRHex: string,
+  publicKeyHex: string,
+  message: string,
+  signatureSHex: string
+): boolean {
+  let R: EdPoint;
+  let P: EdPoint;
+  let s: bigint;
+  try {
+    R = ed25519.Point.fromHex(signatureRHex);
+    P = ed25519.Point.fromHex(publicKeyHex);
+    s = mod(BigInt(`0x${signatureSHex}`), CURVE_ORDER);
+  } catch {
+    return false;
+  }
+  const c = hashChallenge(R, P, utf8(message));
   const left = BASE.multiply(s);
-  const right = R.add(P.multiply(e));
+  const right = R.add(P.multiply(c));
   return left.equals(right);
 }
 

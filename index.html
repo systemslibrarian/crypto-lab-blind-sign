@@ -42,18 +42,22 @@
     <nav class="panel-nav" aria-label="Exhibit navigation">
       <div class="tab-list" role="tablist" aria-label="Blind signature exhibits">
         <button class="tab-btn active" role="tab" id="tab-protocol" aria-selected="true" aria-controls="protocol" data-panel="protocol">The Protocol</button>
+        <button class="tab-btn" role="tab" id="tab-rfc9474" aria-selected="false" aria-controls="rfc9474" data-panel="rfc9474" tabindex="-1">RFC 9474 Blind RSA</button>
         <button class="tab-btn" role="tab" id="tab-cash" aria-selected="false" aria-controls="cash" data-panel="cash" tabindex="-1">Chaum's E-Cash</button>
         <button class="tab-btn" role="tab" id="tab-voting" aria-selected="false" aria-controls="voting" data-panel="voting" tabindex="-1">Anonymous Voting</button>
         <button class="tab-btn" role="tab" id="tab-credentials" aria-selected="false" aria-controls="credentials" data-panel="credentials" tabindex="-1">Anonymous Credentials</button>
+        <button class="tab-btn" role="tab" id="tab-schnorr" aria-selected="false" aria-controls="schnorr" data-panel="schnorr" tabindex="-1">Schnorr Blind (EC)</button>
         <button class="tab-btn" role="tab" id="tab-compare" aria-selected="false" aria-controls="compare" data-panel="compare" tabindex="-1">RSA vs EC Blind</button>
       </div>
     </nav>
 
     <main id="main-content">
       <section id="protocol" class="panel active" role="tabpanel" aria-labelledby="tab-protocol" tabindex="0"></section>
+      <section id="rfc9474" class="panel" role="tabpanel" aria-labelledby="tab-rfc9474" tabindex="0"></section>
       <section id="cash" class="panel" role="tabpanel" aria-labelledby="tab-cash" tabindex="0"></section>
       <section id="voting" class="panel" role="tabpanel" aria-labelledby="tab-voting" tabindex="0"></section>
       <section id="credentials" class="panel" role="tabpanel" aria-labelledby="tab-credentials" tabindex="0"></section>
+      <section id="schnorr" class="panel" role="tabpanel" aria-labelledby="tab-schnorr" tabindex="0"></section>
       <section id="compare" class="panel" role="tabpanel" aria-labelledby="tab-compare" tabindex="0"></section>
     </main>
 

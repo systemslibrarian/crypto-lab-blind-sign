@@ -6,6 +6,66 @@ export interface RsaBlindKeyMaterial {
   d: bigint;
 }
 
+/** What a verifier (merchant, ballot box, credential checker) is allowed to know. */
+export interface RsaPublicKey {
+  n: bigint;
+  e: bigint;
+}
+
+/**
+ * A long-lived signing authority (a bank, voting authority, or credential issuer).
+ * The private exponent `d` is captured in the closure and never exposed — the only
+ * thing callers can do is sign a *blinded* value, which is the whole point of the
+ * blind-signature trust model.
+ */
+export interface RsaIssuer {
+  readonly publicKey: RsaPublicKey;
+  /** Signs a blinded message m' → s' = (m')^d mod n. The issuer never sees m. */
+  signBlinded(blindedMessage: bigint): bigint;
+}
+
+/** The values the requester produces locally before talking to the issuer. */
+export interface BlindRequest {
+  messageRepresentative: bigint;
+  blindingFactor: bigint;
+  blindedMessage: bigint;
+}
+
+/**
+ * Create a signing authority with a stable 2048-bit RSA keypair. Reuse a single
+ * issuer across an exhibit so a verifier can check every signature against one
+ * public key — exactly how a real bank or issuer operates.
+ */
+export async function createRsaIssuer(): Promise<RsaIssuer> {
+  const { n, e, d } = await generateRsaBlindKeyMaterial();
+  return {
+    publicKey: { n, e },
+    signBlinded: (blindedMessage: bigint): bigint => signBlindedMessage(blindedMessage, d, n)
+  };
+}
+
+/** Requester side: hash the message to a representative and blind it with a fresh r. */
+export async function createBlindRequest(messageText: string, pub: RsaPublicKey): Promise<BlindRequest> {
+  const messageRepresentative = await messageToRepresentative(messageText, pub.n);
+  const blindingFactor = randomCoprime(pub.n);
+  const blindedMessage = blindMessage(messageRepresentative, blindingFactor, pub.e, pub.n);
+  return { messageRepresentative, blindingFactor, blindedMessage };
+}
+
+/**
+ * Verifier side: independently re-derive the message representative from the
+ * original text and confirm the unblinded signature satisfies s^e ≡ m (mod n).
+ * Returns false for forged or tampered signatures.
+ */
+export async function verifyMessageSignature(
+  pub: RsaPublicKey,
+  messageText: string,
+  signature: bigint
+): Promise<boolean> {
+  const m = await messageToRepresentative(messageText, pub.n);
+  return verifySignature(signature, m, pub.e, pub.n);
+}
+
 export interface RsaBlindTranscript {
   messageText: string;
   messageRepresentative: bigint;
@@ -148,7 +208,7 @@ export function randomCoprime(modulus: bigint): bigint {
   }
 }
 
-async function messageToRepresentative(message: string, modulus: bigint): Promise<bigint> {
+export async function messageToRepresentative(message: string, modulus: bigint): Promise<bigint> {
   const digest = await crypto.subtle.digest('SHA-256', textEncoder.encode(message));
   const m = bytesToBigInt(new Uint8Array(digest));
   return m % modulus;
