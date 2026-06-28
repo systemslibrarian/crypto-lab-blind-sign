@@ -1,5 +1,3 @@
-[![crypto-lab portfolio](https://img.shields.io/badge/crypto--lab-portfolio-blue?style=flat-square)](https://systemslibrarian.github.io/crypto-lab/)
-
 # crypto-lab-blind-sign
 
 ## What It Is
@@ -13,16 +11,13 @@ The RFC 9474 engine is checked **byte-for-byte against the official Appendix A t
 - Use blind-signed eligibility credentials when an issuer should attest claims like `over18=true` without seeing future verifier presentation context.
 - Use blind signatures for anti-abuse access tokens when services need issuer-approved tokens but want separation between issuer logs and redemption logs.
 - Do not use blind signatures when accountability and signer-side auditability of exact signed content are mandatory, because the signer intentionally does not see the final message.
+- Do NOT treat this as production code — it is a teaching demo and the textbook RSA/Schnorr engines are written for clarity, not for hardened or constant-time deployment.
 
 ## Live Demo
-https://systemslibrarian.github.io/crypto-lab-blind-sign/
-The protocol exhibit runs blind → sign → unblind → verify **one real step at a time**: each button executes its own modular arithmetic, the signer view only ever holds blinded values, and a *Tamper & re-verify* action flips one bit of the signature to show verification rejecting it. The applied exhibits are cryptographically real, not mocked — the e-cash merchant, ballot box, and credential verifier each call `verifySignature` against the issuer's persistent public key. Every exhibit includes a negative case: forged coins and ballot tokens fail the signature check (unforgeability), a re-spent coin fails the freshness check (no double spend), and an altered credential claim fails because the signature is bound to the exact attribute. A dedicated Schnorr-blind (Ed25519) exhibit walks the elliptic-curve variant with its α/β blinding scalars, and the RSA vs EC panel reports measured timings for both engines.
 
-## Running Locally
-- `npm install`
-- `npm run dev` — start the Vite dev server
-- `npm test` — run the Vitest suite (27 tests: textbook RSA and Schnorr correctness/unblinding/tamper-rejection, the modular-arithmetic helpers, and RFC 9474 byte-exact conformance against the official Appendix A vectors plus native WebCrypto round-trips for both variants)
-- `npm run build` — type-check and produce the production bundle
+**[systemslibrarian.github.io/crypto-lab-blind-sign](https://systemslibrarian.github.io/crypto-lab-blind-sign/)**
+
+The protocol exhibit runs blind → sign → unblind → verify **one real step at a time**: each button executes its own modular arithmetic, the signer view only ever holds blinded values, and a *Tamper & re-verify* action flips one bit of the signature to show verification rejecting it. The applied exhibits are cryptographically real, not mocked — the e-cash merchant, ballot box, and credential verifier each call `verifySignature` against the issuer's persistent public key. Every exhibit includes a negative case: forged coins and ballot tokens fail the signature check (unforgeability), a re-spent coin fails the freshness check (no double spend), and an altered credential claim fails because the signature is bound to the exact attribute. A dedicated Schnorr-blind (Ed25519) exhibit walks the elliptic-curve variant with its α/β blinding scalars, and the RSA vs EC panel reports measured timings for both engines.
 
 ## What Can Go Wrong
 - Blinding factor reuse: reusing the same `r` across requests can create correlation across blinded messages and erode unlinkability.
@@ -38,5 +33,28 @@ The protocol exhibit runs blind → sign → unblind → verify **one real step 
 - Apple Private Access Tokens: uses the Privacy Pass / RFC 9474 model with blinded token issuance to separate attestation issuance from redemption identity.
 - RFC 9474 (RSA Blind Signatures): the IETF standard implemented in the "RFC 9474 Blind RSA" exhibit, defining the EMSA-PSS-based blind RSA variants used above.
 
-> *"So whether you eat or drink or whatever you do, do it all
-> for the glory of God." — 1 Corinthians 10:31*
+## How to Run Locally
+
+```bash
+git clone https://github.com/systemslibrarian/crypto-lab-blind-sign
+cd crypto-lab-blind-sign
+npm install
+npm run dev
+```
+
+## Related Demos
+- [crypto-lab-ring-sign](https://systemslibrarian.github.io/crypto-lab-ring-sign/) — another privacy-preserving signature, providing signer anonymity and unlinkability via ring signatures.
+- [crypto-lab-rsa-forge](https://systemslibrarian.github.io/crypto-lab-rsa-forge/) — the RSA primitive (OAEP/PSS/PKCS#1) underlying the RSA blind signature construction.
+- [crypto-lab-ed25519-forge](https://systemslibrarian.github.io/crypto-lab-ed25519-forge/) — the EdDSA/Schnorr signature scheme that the Schnorr-blind exhibit builds on.
+- [crypto-lab-pairing-gate](https://systemslibrarian.github.io/crypto-lab-pairing-gate/) — BLS signatures, another advanced signature primitive with aggregation.
+- [crypto-lab-psi-gate](https://systemslibrarian.github.io/crypto-lab-psi-gate/) — privacy-preserving protocol over ristretto255 in the same unlinkability family.
+
+## Tests
+- `npm test` — run the Vitest suite (27 tests: textbook RSA and Schnorr correctness/unblinding/tamper-rejection, the modular-arithmetic helpers, and RFC 9474 byte-exact conformance against the official Appendix A vectors plus native WebCrypto round-trips for both variants)
+- `npm run build` — type-check and produce the production bundle
+
+---
+
+*One of 60+ browser demos in the [Crypto Lab](https://crypto-lab.systemslibrarian.dev/) suite.*
+
+*"So whether you eat or drink or whatever you do, do it all for the glory of God." — 1 Corinthians 10:31*
