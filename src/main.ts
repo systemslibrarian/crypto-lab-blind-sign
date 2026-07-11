@@ -270,7 +270,7 @@ function renderExhibits(): void {
         <span class="status-line" id="cash-status" role="status" aria-live="polite"></span>
         <span class="verdict" id="cash-verdict" aria-live="polite"></span>
       </div>
-      <pre id="cash-log" aria-label="E-Cash transaction log"></pre>
+      <pre id="cash-log" role="log" aria-label="E-Cash transaction log"></pre>
     </div>
   `
   );
@@ -299,7 +299,7 @@ function renderExhibits(): void {
         <span class="status-line" id="vote-status" role="status" aria-live="polite"></span>
         <span class="verdict" id="vote-verdict" aria-live="polite"></span>
       </div>
-      <pre id="vote-log" aria-label="Voting transcript"></pre>
+      <pre id="vote-log" role="log" aria-label="Voting transcript"></pre>
     </div>
   `
   );
@@ -321,7 +321,7 @@ function renderExhibits(): void {
         <span class="status-line" id="cred-status" role="status" aria-live="polite"></span>
         <span class="verdict" id="cred-verdict" aria-live="polite"></span>
       </div>
-      <pre id="cred-log" aria-label="Credential transcript"></pre>
+      <pre id="cred-log" role="log" aria-label="Credential transcript"></pre>
       <p class="compare-note">Compared with BBS+ and W3C Verifiable Credential stacks, blind signatures prioritize issuer unlinkability at issuance time.</p>
     </div>
   `
@@ -370,7 +370,7 @@ function renderExhibits(): void {
           </tbody>
         </table>
       </div>
-      <pre id="compare-log" aria-label="Comparison output log"></pre>
+      <pre id="compare-log" role="log" aria-label="Comparison output log"></pre>
     </div>
   `
   );
