@@ -139,21 +139,22 @@
     <div id="aria-live-polite" class="sr-only" aria-live="polite" aria-atomic="true"></div>
     <div id="aria-live-assertive" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
 
-    <header class="site-header" role="banner" style="position: relative;">
-      <button
-        id="theme-toggle"
-        class="theme-toggle"
-        aria-label="Switch to light mode"
-        title="Toggle color theme"
-        style="position: absolute; top: 0; right: 0"
-      ><span id="theme-icon" aria-hidden="true">🌙</span></button>
-      <div class="header-inner">
-        <div class="header-meta">
-          <span class="category-chip" aria-label="Category: Privacy Cryptography">Privacy Cryptography</span>
-        </div>
-        <h1 class="site-title">Blind Signature Lab</h1>
-        <p class="subtitle">Interactive exhibits for blind signatures, e-cash, anonymous credentials, and private voting.</p>
+    <button
+      id="theme-toggle"
+      class="theme-toggle"
+      aria-label="Switch to light mode"
+      title="Toggle color theme"
+    ><span id="theme-icon" aria-hidden="true">🌙</span></button>
+    <header class="cl-hero">
+      <div class="cl-hero-main">
+        <h1 class="cl-hero-title">Blind Signatures</h1>
+        <p class="cl-hero-sub">Chaum blinding · RFC 9474 blind RSA · Schnorr blind</p>
+        <p class="cl-hero-desc">Blind, sign, unblind, and verify across RSA and elliptic-curve schemes to obtain a valid signature the signer never sees in the clear.</p>
       </div>
+      <aside class="cl-hero-why" aria-label="Why it matters">
+        <span class="cl-hero-why-label">WHY IT MATTERS</span>
+        <p class="cl-hero-why-text">Unlinkability at issuance plus unforgeability is what lets Chaum e-cash spend privately, ballots stay anonymous, and credentials be shown without the issuer tracing them. The signer authorizes what it cannot read.</p>
+      </aside>
     </header>
 
     <nav class="panel-nav" aria-label="Exhibit navigation">
