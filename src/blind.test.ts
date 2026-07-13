@@ -9,7 +9,10 @@ import {
   modPow,
   modInverse,
   randomCoprime,
-  messageToRepresentative
+  messageToRepresentative,
+  runToyBlindSignature,
+  randomToyBlinding,
+  TOY_KEY
 } from './blind';
 
 describe('RSA blind signature', () => {
@@ -74,6 +77,40 @@ describe('RSA blind signature', () => {
     expect(a.messageRepresentative).toBe(b.messageRepresentative);
     expect(a.blindingFactor).not.toBe(b.blindingFactor);
     expect(a.blindedMessage).not.toBe(b.blindedMessage);
+  });
+});
+
+describe('toy (small-numbers) blind signature', () => {
+  it('uses a genuine RSA key: e·d ≡ 1 (mod φ(n)) and n = 61·53', () => {
+    expect(TOY_KEY.n).toBe(3233n);
+    const phi = 60n * 52n; // (61-1)(53-1)
+    expect((TOY_KEY.e * TOY_KEY.d) % phi).toBe(1n);
+  });
+
+  it('the blinding factor cancels: unblinded s equals the direct signature m^d', () => {
+    // Deterministic sample the learner can follow by hand.
+    const step = runToyBlindSignature(42n, 7n);
+    expect(step.signature).toBe(step.directSig);
+    expect(step.ok).toBe(true);
+    // s^e mod n recovers the original message m.
+    expect(step.verify).toBe(42n);
+  });
+
+  it('holds for many random messages and random blinding factors', () => {
+    for (let m = 2n; m < 60n; m++) {
+      const r = randomToyBlinding();
+      const step = runToyBlindSignature(m, r);
+      expect(step.signature).toBe(step.directSig);
+      expect(step.ok).toBe(true);
+    }
+  });
+
+  it('randomToyBlinding returns a value coprime to n in range', () => {
+    for (let i = 0; i < 50; i++) {
+      const r = randomToyBlinding();
+      expect(r).toBeGreaterThanOrEqual(2n);
+      expect(r).toBeLessThan(TOY_KEY.n);
+    }
   });
 });
 

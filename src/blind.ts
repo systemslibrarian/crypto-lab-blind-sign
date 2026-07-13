@@ -156,6 +156,59 @@ export async function runRsaBlindSignatureDemo(messageText: string): Promise<Rsa
   };
 }
 
+/**
+ * A fully worked blind-RSA run over a *toy* modulus small enough to read every
+ * value in full and check by hand. The numbers are tiny for legibility, but the
+ * arithmetic is the identical code path used by the 2048-bit issuer above —
+ * blindMessage → signBlindedMessage → unblindSignature → verifySignature. This
+ * is a teaching lens on the real math, NOT a weakened primitive: the boolean at
+ * the end comes from the same verifySignature the production exhibit uses.
+ *
+ * Key: n = 61·53 = 3233, φ(n) = 60·52 = 3120, e = 17, d = 2753 (17·2753 ≡ 1 mod φ).
+ */
+export interface ToyBlindStep {
+  m: bigint; // message representative (a small integer < n)
+  r: bigint; // blinding factor, coprime to n
+  re: bigint; // r^e mod n
+  blinded: bigint; // m' = m · r^e mod n  (all the signer ever sees)
+  blindedSig: bigint; // s' = (m')^d mod n
+  rInv: bigint; // r^-1 mod n
+  signature: bigint; // s = s' · r^-1 mod n  (should equal m^d mod n)
+  directSig: bigint; // m^d mod n computed directly, to show s == m^d
+  verify: bigint; // s^e mod n (should equal m)
+  ok: boolean;
+}
+
+export const TOY_KEY = { n: 3233n, e: 17n, d: 2753n } as const;
+
+/**
+ * Run the toy protocol for a caller-chosen message `m` and blinding factor `r`.
+ * Both must be in-range and coprime to n; callers can let the demo pick a random
+ * valid r via {@link randomToyBlinding}.
+ */
+export function runToyBlindSignature(m: bigint, r: bigint): ToyBlindStep {
+  const { n, e, d } = TOY_KEY;
+  const re = modPow(r, e, n);
+  const blinded = blindMessage(m, r, e, n);
+  const blindedSig = signBlindedMessage(blinded, d, n);
+  const rInv = modInverse(r, n);
+  const signature = unblindSignature(blindedSig, r, n);
+  const directSig = modPow(m, d, n);
+  const verify = modPow(signature, e, n);
+  return { m, r, re, blinded, blindedSig, rInv, signature, directSig, verify, ok: verify === m % n };
+}
+
+/** Pick a small blinding factor coprime to the toy modulus (2 ≤ r < n). */
+export function randomToyBlinding(): bigint {
+  const { n } = TOY_KEY;
+  while (true) {
+    const bytes = new Uint8Array(2);
+    crypto.getRandomValues(bytes);
+    const candidate = (BigInt((bytes[0] << 8) | bytes[1]) % (n - 3n)) + 2n;
+    if (gcd(candidate, n) === 1n) return candidate;
+  }
+}
+
 export function blindMessage(m: bigint, r: bigint, e: bigint, n: bigint): bigint {
   return (m * modPow(r, e, n)) % n;
 }

@@ -5,8 +5,13 @@ import {
   unblindSignature,
   verifySignature,
   verifyMessageSignature,
+  runToyBlindSignature,
+  randomToyBlinding,
+  modPow,
+  TOY_KEY,
   type RsaIssuer,
-  type BlindRequest
+  type BlindRequest,
+  type ToyBlindStep
 } from './blind';
 import { runEcBlindSignatureDemo, verifyEcBlindSignature, type EcBlindTranscript } from './ecblind';
 import {
@@ -183,6 +188,40 @@ function renderExhibits(): void {
       <h2>Exhibit 1 &mdash; The Protocol</h2>
       <p>Run blind &rarr; sign &rarr; unblind &rarr; verify one real step at a time. Each button actually executes its
         arithmetic — the signer only ever touches blinded values. Then tamper with the result to watch verification reject it.</p>
+
+      <details class="primer">
+        <summary>New to RSA? Read this first</summary>
+        <div class="primer-body">
+          <p>RSA gives a signer two matched exponents modulo a big number <strong>n</strong>:</p>
+          <ul>
+            <li><strong>n</strong> — the <em>modulus</em>, public. All arithmetic is "mod n" (wrap around after n).</li>
+            <li><strong>e</strong> — the <em>public</em> exponent, published to everyone. Used to <em>verify</em>.</li>
+            <li><strong>d</strong> — the <em>private</em> exponent, known only to the signer. Used to <em>sign</em>.</li>
+          </ul>
+          <p>They are inverses under exponentiation, so <code>(x^d)^e = x^(d·e) = x (mod n)</code>. That single fact drives everything:</p>
+          <ul>
+            <li><strong>Sign</strong> a value m: raise it to <code>d</code> &nbsp;→&nbsp; <code>s = m^d mod n</code>.</li>
+            <li><strong>Verify</strong> a signature s: raise it to <code>e</code> and check it lands back on m &nbsp;→&nbsp; <code>s^e mod n == m</code>.</li>
+          </ul>
+          <p>Only the holder of <code>d</code> can sign; anyone with <code>e</code> and <code>n</code> can verify. That asymmetry is what "unforgeable" means here.</p>
+        </div>
+      </details>
+
+      <div class="why-callout" role="note" aria-label="Why blinding works">
+        <h3 class="why-title">Why does blinding work?</h3>
+        <p>Before sending your message <strong>m</strong> to the signer you multiply it by <code>r^e</code> for a secret random <strong>r</strong>. The signer signs that blinded value by raising it to their private <code>d</code>:</p>
+        <p class="why-math"><code>Sign(m · r^e) = (m · r^e)^d = m^d · r^(e·d) = m^d · r&nbsp;&nbsp;(mod n)</code></p>
+        <p>Because <code>e</code> and <code>d</code> are inverses, <code>r^(e·d)</code> collapses to just <code>r</code>. So the blinded signature is <code>m^d · r</code>. You divide out your own secret <code>r</code>:</p>
+        <p class="why-math"><code>(m^d · r) · r^-1 = m^d&nbsp;&nbsp;(mod n)</code></p>
+        <p class="why-punch">The signer's private exponentiation slides <em>straight through</em> your blinding factor, so the signature you unwrap is a genuine signature on <strong>m</strong> that the signer never saw.</p>
+      </div>
+
+      <div class="mode-row" role="group" aria-label="Value display mode">
+        <span class="mode-label" id="protocol-mode-label">Numbers:</span>
+        <label class="mode-opt"><input type="radio" name="protocol-mode" value="real" checked /> Real 2048-bit (truncated hex)</label>
+        <label class="mode-opt"><input type="radio" name="protocol-mode" value="toy" /> Small numbers (readable, verify by hand)</label>
+      </div>
+
       <div class="button-row" role="group" aria-label="Protocol steps">
         <button class="btn primary" id="protocol-blind" aria-label="Step 1: Blind the message">1 · Blind</button>
         <button class="btn" id="protocol-sign" aria-label="Step 2: Signer signs blinded message" disabled>2 · Sign</button>
@@ -193,16 +232,40 @@ function renderExhibits(): void {
       <div class="protocol-grid">
         <div class="card inset" id="requester-view">
           <h3>Requester (Alice) View</h3>
-          <pre id="requester-log" aria-label="Requester protocol transcript">Click 1 · Blind to start.</pre>
+          <pre id="requester-log" tabindex="0" role="region" aria-label="Requester protocol transcript">Click 1 · Blind to start.</pre>
         </div>
         <div class="card inset" id="signer-view">
           <h3>Signer (Bank) View</h3>
-          <pre id="signer-log" aria-label="Signer protocol transcript">Signer has not received a blinded request yet.</pre>
+          <pre id="signer-log" tabindex="0" role="region" aria-label="Signer protocol transcript">Signer has not received a blinded request yet.</pre>
         </div>
       </div>
-      <div class="flow-track" aria-hidden="true">
-        <span class="flow-pill" id="flow-pill">blinding factor wraps message</span>
-      </div>
+
+      <figure class="envelope-figure">
+        <figcaption id="envelope-caption" class="envelope-caption">The blinding factor <span class="r-swatch" aria-hidden="true"></span> <strong>r</strong> seals the message; the same <strong>r</strong> unseals the signature.</figcaption>
+        <svg class="envelope-svg" viewBox="0 0 340 120" role="img" aria-labelledby="envelope-caption" data-stage="idle">
+          <!-- Requester side -->
+          <g class="env-msg" transform="translate(40,60)">
+            <circle class="msg-shape" r="16"></circle>
+            <text class="msg-label" y="5" text-anchor="middle">m</text>
+          </g>
+          <!-- Envelope (r) that wraps the message -->
+          <g class="env-wrap" transform="translate(40,60)">
+            <rect class="wrap-body" x="-22" y="-20" width="44" height="40" rx="6"></rect>
+            <text class="wrap-label" y="5" text-anchor="middle">m·r&#8319;</text>
+          </g>
+          <!-- Signer's d-stamp -->
+          <g class="env-stamp" transform="translate(170,60)">
+            <circle class="stamp-ring" r="20"></circle>
+            <text class="stamp-label" y="6" text-anchor="middle">^d</text>
+          </g>
+          <!-- Recovered signature -->
+          <g class="env-sig" transform="translate(300,60)">
+            <circle class="sig-shape" r="16"></circle>
+            <text class="sig-label" y="5" text-anchor="middle">m&#7496;</text>
+          </g>
+        </svg>
+      </figure>
+
       <div class="result-row">
         <span class="status-line" id="protocol-status" role="status" aria-live="polite"></span>
         <span class="verdict" id="protocol-verdict" aria-live="polite"></span>
@@ -221,6 +284,18 @@ function renderExhibits(): void {
         <strong>EMSA-PSS</strong> encoding (SHA-384 + MGF1 + salt). The finished signature is an ordinary RSASSA-PSS
         signature, so step 3 verifies it with the browser's own <code>crypto.subtle.verify</code> — an independent,
         standards-compliant check. This engine reproduces the RFC's official Appendix&nbsp;A test vectors byte-for-byte.</p>
+
+      <div class="why-callout" role="note" aria-label="Why padding is added">
+        <h3 class="why-title">Why the extra padding?</h3>
+        <p>Exhibit 1 signs a bare hash <code>H(m) mod n</code>. That textbook form is <em>malleable</em> — multiply two signatures and you get a third — and is not what real systems deploy. RFC 9474 first wraps the message in <strong>EMSA-PSS</strong>, standardized randomized padding, so the finished result is a normal RSA-PSS signature any library accepts. Same blinding trick you just learned, wrapped in a production-hardened envelope.</p>
+        <dl class="jargon-legend">
+          <dt>SHA-384</dt><dd>the hash that compresses the message to a fixed-size digest.</dd>
+          <dt>MGF1</dt><dd>a mask-generation function that stretches that digest to fill the padding.</dd>
+          <dt>salt</dt><dd>fresh random bytes mixed in so signing the same message twice looks different (the "randomized" variant).</dd>
+          <dt>message prefix</dt><dd>32 random bytes the requester prepends so the signer cannot recognize a chosen message.</dd>
+        </dl>
+      </div>
+
       <fieldset class="variant-group">
         <legend>Variant</legend>
         <label><input type="radio" name="rfc-variant" value="RSABSSA-SHA384-PSS-Randomized" checked />
@@ -335,6 +410,16 @@ function renderExhibits(): void {
       <p>The elliptic-curve cousin of RSA blinding. The requester blinds the signer's commitment with random scalars
         &alpha;, &beta; so the signer never sees the final challenge or signature. The pair (R&prime;, s) still verifies
         as <code>s·G = R&prime; + H(R&prime;,P,m)·P</code>. Run it, then tamper to see verification fail.</p>
+
+      <div class="why-callout" role="note" aria-label="How this maps back to RSA">
+        <h3 class="why-title">Same idea, different group</h3>
+        <p>In RSA one multiplicative blinder <code>r</code> hid a single value. Schnorr's signature has <em>two</em>
+          moving parts — a commitment <code>R</code> and a challenge <code>c</code> — so it needs <em>two</em> additive
+          blinders: <code>&alpha;</code> shifts the commitment (<code>R&prime; = R0 + &alpha;G + &beta;P</code>) and
+          <code>&beta;</code> shifts the challenge (<code>c&prime; = c + &beta;</code>). Blind, sign, unblind, verify —
+          the same four moves as Exhibit 1, done with point addition instead of modular multiplication. When you unblind
+          <code>s = s0 + &alpha;</code>, the blinders cancel exactly as <code>r</code> did.</p>
+      </div>
       <div class="button-row" role="group" aria-label="Schnorr blind actions">
         <button class="btn primary" id="schnorr-run" aria-label="Run the blind Schnorr signature flow">Run Blind Schnorr</button>
         <button class="btn danger" id="schnorr-tamper" aria-label="Tamper with the signature scalar and re-verify" disabled>Tamper &amp; re-verify</button>
@@ -377,50 +462,94 @@ function renderExhibits(): void {
 }
 
 // ── Exhibit 1: real step-by-step protocol ─────────────────────
+function protocolMode(): 'real' | 'toy' {
+  const checked = document.querySelector<HTMLInputElement>('input[name="protocol-mode"]:checked');
+  return checked?.value === 'toy' ? 'toy' : 'real';
+}
+
+/** Drive the envelope SVG through its four stages. */
+function envelopeStage(stage: 'idle' | 'wrapped' | 'stamped' | 'unwrapped'): void {
+  const svg = document.querySelector<SVGElement>('.envelope-svg');
+  if (svg) svg.setAttribute('data-stage', stage);
+}
+
 function wireProtocolExhibit(): void {
   const requesterLog = byId('requester-log');
   const signerLog = byId('signer-log');
   const status = byId('protocol-status');
-  const flow = byId('flow-pill');
 
-  // Per-run protocol state. Reset on every Blind.
-  let run: {
-    issuer: RsaIssuer;
-    request: BlindRequest;
-    blindedSignature?: bigint;
-    signature?: bigint;
-  } | null = null;
+  // Per-run protocol state. Reset on every Blind. Either a real 2048-bit run or
+  // a toy run; both execute the SAME blind/sign/unblind/verify primitives.
+  let run:
+    | { mode: 'real'; issuer: RsaIssuer; request: BlindRequest; blindedSignature?: bigint; signature?: bigint }
+    | { mode: 'toy'; m: bigint; r: bigint; toy: ToyBlindStep; signed?: boolean; unblinded?: boolean }
+    | null = null;
+
+  const resetRun = (): void => {
+    run = null;
+    envelopeStage('idle');
+    setVerdict('protocol-verdict', null, '');
+    enable('protocol-sign', false);
+    enable('protocol-unblind', false);
+    enable('protocol-verify', false);
+    enable('protocol-tamper', false);
+    requesterLog.textContent = 'Click 1 · Blind to start.';
+    signerLog.textContent = 'Signer has not received a blinded request yet.';
+    status.textContent = '';
+  };
+
+  for (const radio of document.querySelectorAll<HTMLInputElement>('input[name="protocol-mode"]')) {
+    radio.addEventListener('change', resetRun);
+  }
 
   const blindBtn = byId('protocol-blind') as HTMLButtonElement;
   blindBtn.addEventListener(
     'click',
     withBusy(blindBtn, async () => {
-      status.textContent = 'Generating RSA keypair and blinding message…';
-      announce('Generating RSA keypair and blinding message');
       setVerdict('protocol-verdict', null, '');
+      envelopeStage('idle');
 
-      const issuer = await createRsaIssuer();
-      const request = await createBlindRequest('Chaum blind signature request', issuer.publicKey);
-      run = { issuer, request };
+      if (protocolMode() === 'toy') {
+        // Toy modulus n=3233 (=61·53), e=17, d=2753. A readable message and a
+        // random valid blinding factor, run through the identical primitives.
+        const m = (BigInt(new Date().getSeconds()) % 40n) + 20n; // small, < n, coprime-safe
+        const r = randomToyBlinding();
+        const toy = runToyBlindSignature(m, r);
+        run = { mode: 'toy', m, r, toy };
+        requesterLog.textContent = [
+          'Toy key (verify by hand): n = 61·53 = 3233,  e = 17,  d = 2753',
+          '',
+          `m  = message              = ${toy.m}`,
+          `r  = random, gcd(r,n)=1   = ${toy.r}`,
+          `r^e mod n                 = ${toy.re}`,
+          `m' = m · r^e mod n        = ${toy.blinded}   ← handed to signer`
+        ].join('\n');
+        signerLog.textContent = [
+          `Signer receives only: m' = ${toy.blinded}`,
+          'Signer has not seen m or r.'
+        ].join('\n');
+        status.textContent = 'Blind complete. Hand m′ to the signer.';
+        announce('Blind step complete. Message is now blinded.');
+      } else {
+        status.textContent = 'Generating RSA keypair and blinding message…';
+        announce('Generating RSA keypair and blinding message');
+        const issuer = await createRsaIssuer();
+        const request = await createBlindRequest('Chaum blind signature request', issuer.publicKey);
+        run = { mode: 'real', issuer, request };
+        requesterLog.textContent = [
+          `m  = H(message) mod n = ${shortHex(request.messageRepresentative)}`,
+          `r  = random, gcd(r,n)=1 = ${shortHex(request.blindingFactor)}`,
+          `m' = m · r^e mod n     = ${shortHex(request.blindedMessage)}`
+        ].join('\n');
+        signerLog.textContent = [
+          `Signer receives only: m' = ${shortHex(request.blindedMessage)}`,
+          'Signer has not seen m or r.'
+        ].join('\n');
+        status.textContent = 'Blind complete. Hand m′ to the signer.';
+        announce('Blind step complete. Message is now blinded.');
+      }
 
-      requesterLog.textContent = [
-        `m  = H(message) mod n = ${shortHex(request.messageRepresentative)}`,
-        `r  = random, gcd(r,n)=1 = ${shortHex(request.blindingFactor)}`,
-        `m' = m · r^e mod n     = ${shortHex(request.blindedMessage)}`
-      ].join('\n');
-
-      signerLog.textContent = [
-        `Signer receives only: m' = ${shortHex(request.blindedMessage)}`,
-        'Signer has not seen m or r.'
-      ].join('\n');
-
-      flow.textContent = 'message wrapped by blinding factor r';
-      flow.classList.remove('animate');
-      void flow.offsetWidth;
-      flow.classList.add('animate');
-      status.textContent = 'Blind complete. Hand m′ to the signer.';
-      announce('Blind step complete. Message is now blinded.');
-
+      envelopeStage('wrapped');
       enable('protocol-sign', true);
       enable('protocol-unblind', false);
       enable('protocol-verify', false);
@@ -430,45 +559,85 @@ function wireProtocolExhibit(): void {
 
   byId('protocol-sign').addEventListener('click', () => {
     if (!run) return;
-    const { n } = run.issuer.publicKey;
-    run.blindedSignature = run.issuer.signBlinded(run.request.blindedMessage);
-    signerLog.textContent = [
-      `Signer input:  m' = ${shortHex(run.request.blindedMessage)}`,
-      `Signer output: s' = (m')^d mod n = ${shortHex(run.blindedSignature)}`,
-      `(modulus n = ${shortHex(n)})`
-    ].join('\n');
+    if (run.mode === 'toy') {
+      run.signed = true;
+      signerLog.textContent = [
+        `Signer input:  m' = ${run.toy.blinded}`,
+        `Signer output: s' = (m')^d mod n = ${run.toy.blindedSig}`,
+        '(modulus n = 3233)'
+      ].join('\n');
+    } else {
+      const { n } = run.issuer.publicKey;
+      run.blindedSignature = run.issuer.signBlinded(run.request.blindedMessage);
+      signerLog.textContent = [
+        `Signer input:  m' = ${shortHex(run.request.blindedMessage)}`,
+        `Signer output: s' = (m')^d mod n = ${shortHex(run.blindedSignature)}`,
+        `(modulus n = ${shortHex(n)})`
+      ].join('\n');
+    }
+    envelopeStage('stamped');
     status.textContent = 'Sign complete. Blinded signature s′ returned.';
     announce('Sign step complete. Blinded signature produced.');
     enable('protocol-unblind', true);
   });
 
   byId('protocol-unblind').addEventListener('click', () => {
-    if (!run || run.blindedSignature === undefined) return;
-    const { n } = run.issuer.publicKey;
-    run.signature = unblindSignature(run.blindedSignature, run.request.blindingFactor, n);
-    requesterLog.textContent = [
-      requesterLog.textContent,
-      '',
-      `s = s' · r^-1 mod n = ${shortHex(run.signature)}`,
-      'Requester removed r. The signer never saw this value.'
-    ].join('\n');
-    flow.textContent = 'blinding removed, valid signature recovered';
-    status.textContent = 'Unblind complete. Now verify it.';
+    if (!run) return;
+    if (run.mode === 'toy') {
+      const t = run.toy;
+      run.unblinded = true;
+      requesterLog.textContent = [
+        requesterLog.textContent,
+        '',
+        `r^-1 mod n                = ${t.rInv}   (since r·r^-1 ≡ 1 mod n)`,
+        `s = s' · r^-1 mod n       = ${t.signature}   ← blinding cancels`,
+        `check m^d mod n directly  = ${t.directSig}   ← identical, r is gone`,
+        'The same r that sealed m unseals the signature.'
+      ].join('\n');
+      status.textContent = 'Unblind complete. Watch r cancel, then verify.';
+    } else {
+      if (run.blindedSignature === undefined) return;
+      const { n } = run.issuer.publicKey;
+      run.signature = unblindSignature(run.blindedSignature, run.request.blindingFactor, n);
+      requesterLog.textContent = [
+        requesterLog.textContent,
+        '',
+        `s = s' · r^-1 mod n = ${shortHex(run.signature)}`,
+        'Requester removed r. The signer never saw this value.'
+      ].join('\n');
+      status.textContent = 'Unblind complete. Now verify it.';
+    }
+    envelopeStage('unwrapped');
     announce('Unblind step complete. Valid signature recovered.');
     enable('protocol-verify', true);
   });
 
   byId('protocol-verify').addEventListener('click', () => {
-    if (!run || run.signature === undefined) return;
-    const { n, e } = run.issuer.publicKey;
-    const ok = verifySignature(run.signature, run.request.messageRepresentative, e, n);
-    requesterLog.textContent = [
-      requesterLog.textContent,
-      '',
-      `verify: s^e mod n == m  →  ${ok}`,
-      'Unlinkability: the signer only ever held (m′, s′). Without r they',
-      'cannot map the public (m, s) back to this issuance.'
-    ].join('\n');
+    if (!run) return;
+    let ok: boolean;
+    if (run.mode === 'toy') {
+      const t = run.toy;
+      ok = t.ok;
+      requesterLog.textContent = [
+        requesterLog.textContent,
+        '',
+        `verify: s^e mod n         = ${t.verify}`,
+        `        equals m (${t.m})?  →  ${ok}`,
+        'Unlinkability: the signer only ever held (m′, s′). Without r they',
+        'cannot map the public (m, s) back to this issuance.'
+      ].join('\n');
+    } else {
+      if (run.signature === undefined) return;
+      const { n, e } = run.issuer.publicKey;
+      ok = verifySignature(run.signature, run.request.messageRepresentative, e, n);
+      requesterLog.textContent = [
+        requesterLog.textContent,
+        '',
+        `verify: s^e mod n == m  →  ${ok}`,
+        'Unlinkability: the signer only ever held (m′, s′). Without r they',
+        'cannot map the public (m, s) back to this issuance.'
+      ].join('\n');
+    }
     setVerdict('protocol-verdict', ok, ok ? 'VALID' : 'INVALID');
     status.textContent = `Verify complete — signature is ${ok ? 'valid' : 'invalid'}.`;
     announce(`Verification ${ok ? 'passed' : 'failed'}. Signer cannot link signature to original message.`);
@@ -476,17 +645,33 @@ function wireProtocolExhibit(): void {
   });
 
   byId('protocol-tamper').addEventListener('click', () => {
-    if (!run || run.signature === undefined) return;
-    const { n, e } = run.issuer.publicKey;
-    const forged = (run.signature + 1n) % n; // flip the signature by one
-    const ok = verifySignature(forged, run.request.messageRepresentative, e, n);
-    requesterLog.textContent = [
-      requesterLog.textContent,
-      '',
-      `Tampered signature s+1 = ${shortHex(forged)}`,
-      `verify: (s+1)^e mod n == m  →  ${ok}`,
-      'A single altered bit breaks the equation: forgery is rejected.'
-    ].join('\n');
+    if (!run) return;
+    let ok: boolean;
+    if (run.mode === 'toy') {
+      const t = run.toy;
+      const forged = (t.signature + 1n) % TOY_KEY.n;
+      const check = modPow(forged, TOY_KEY.e, TOY_KEY.n);
+      ok = check === t.m % TOY_KEY.n;
+      requesterLog.textContent = [
+        requesterLog.textContent,
+        '',
+        `Tampered signature s+1    = ${forged}`,
+        `verify: (s+1)^e mod n     = ${check}  (needed ${t.m})  →  ${ok}`,
+        'A single altered value breaks the equation: forgery is rejected.'
+      ].join('\n');
+    } else {
+      if (run.signature === undefined) return;
+      const { n, e } = run.issuer.publicKey;
+      const forged = (run.signature + 1n) % n;
+      ok = verifySignature(forged, run.request.messageRepresentative, e, n);
+      requesterLog.textContent = [
+        requesterLog.textContent,
+        '',
+        `Tampered signature s+1 = ${shortHex(forged)}`,
+        `verify: (s+1)^e mod n == m  →  ${ok}`,
+        'A single altered bit breaks the equation: forgery is rejected.'
+      ].join('\n');
+    }
     setVerdict('protocol-verdict', ok, ok ? 'VALID' : 'REJECTED');
     status.textContent = 'Tampered signature rejected — this is unforgeability.';
     announce('Tampered signature rejected. Verification failed as expected.');

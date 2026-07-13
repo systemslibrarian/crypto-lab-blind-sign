@@ -350,28 +350,240 @@ main {
   margin-top: var(--space-4);
 }
 
-/* ── Flow animation track ───────────────────────────────────── */
-.flow-track {
-  margin-top: var(--space-3);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-full);
-  padding: var(--space-1);
-  overflow: hidden;
+/* ── "New to RSA?" primer disclosure ────────────────────────── */
+.primer {
+  margin-top: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-elevated);
 }
 
-.flow-pill {
-  display: inline-block;
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-full);
-  background-color: var(--color-secondary);
-  color: var(--color-bg);
-  font-size: 0.8rem;
+.primer > summary {
+  cursor: pointer;
+  padding: var(--space-3) var(--space-4);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  list-style-position: inside;
+}
+
+.primer[open] > summary {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.primer-body {
+  padding: var(--space-3) var(--space-4);
+}
+
+.primer-body p,
+.primer-body ul {
+  color: var(--color-text);
+  margin: 0 0 var(--space-2);
+  font-size: 0.9rem;
+}
+
+.primer-body ul {
+  padding-left: 1.2rem;
+}
+
+.primer-body li {
+  margin-bottom: var(--space-1);
+}
+
+/* ── "Why this works" teaching callout ──────────────────────── */
+.why-callout {
+  margin-top: var(--space-4);
+  border: 1px solid var(--color-primary);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  background-color: color-mix(in srgb, var(--color-primary) 8%, var(--color-card));
+}
+
+.why-title {
+  margin: 0 0 var(--space-2);
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.why-callout p {
+  color: var(--color-text);
+  margin: 0 0 var(--space-2);
+  font-size: 0.92rem;
+}
+
+.why-callout p:last-child {
+  margin-bottom: 0;
+}
+
+.why-math {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.why-punch {
   font-weight: 600;
-  transform: translateX(0);
 }
 
-.flow-pill.animate {
-  animation: move-pill 1s ease;
+.jargon-legend {
+  margin: var(--space-2) 0 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-3);
+  font-size: 0.88rem;
+}
+
+.jargon-legend dt {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.jargon-legend dd {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* ── Value display mode selector ────────────────────────────── */
+.mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  font-size: 0.9rem;
+}
+
+.mode-label {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.mode-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.mode-opt input[type='radio'] {
+  accent-color: var(--color-primary);
+  min-width: 1rem;
+  min-height: 1rem;
+}
+
+/* ── Envelope (blinding) mechanism animation ────────────────── */
+.envelope-figure {
+  margin: var(--space-4) 0 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background-color: var(--color-bg-elevated);
+}
+
+.envelope-caption {
+  margin: 0 0 var(--space-2);
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.r-swatch {
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  border-radius: 3px;
+  background-color: var(--color-secondary);
+  vertical-align: -1px;
+}
+
+.envelope-svg {
+  width: 100%;
+  height: auto;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.envelope-svg text {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.msg-shape,
+.sig-shape {
+  fill: color-mix(in srgb, var(--color-primary) 30%, var(--color-card));
+  stroke: var(--color-primary);
+  stroke-width: 2;
+}
+
+.msg-label,
+.sig-label,
+.wrap-label {
+  fill: var(--color-text);
+}
+
+.wrap-body {
+  fill: color-mix(in srgb, var(--color-secondary) 34%, var(--color-card));
+  stroke: var(--color-secondary);
+  stroke-width: 2;
+}
+
+.stamp-ring {
+  fill: none;
+  stroke: var(--color-text-muted);
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+
+.stamp-label {
+  fill: var(--color-text-muted);
+}
+
+/* Stage-driven visibility. Transitions animate the envelope wrap/stamp/unwrap. */
+.env-wrap,
+.env-stamp,
+.env-sig {
+  opacity: 0;
+  transition: opacity var(--transition-base), transform var(--transition-base);
+}
+
+.envelope-svg[data-stage='wrapped'] .env-wrap,
+.envelope-svg[data-stage='stamped'] .env-wrap,
+.envelope-svg[data-stage='stamped'] .env-stamp {
+  opacity: 1;
+}
+
+/* Once wrapped, the bare message hides behind its envelope. */
+.envelope-svg[data-stage='wrapped'] .env-msg,
+.envelope-svg[data-stage='stamped'] .env-msg,
+.envelope-svg[data-stage='unwrapped'] .env-msg {
+  opacity: 0;
+}
+
+/* Sign stage: the sealed envelope slides to the signer's stamp. */
+.envelope-svg[data-stage='stamped'] .env-wrap {
+  transform: translate(130px, 0);
+}
+
+/* Unwrap stage: the envelope peels away, revealing the stamped signature. */
+.envelope-svg[data-stage='unwrapped'] .env-wrap {
+  opacity: 0;
+  transform: translate(260px, 0) scale(1.4);
+}
+
+.envelope-svg[data-stage='unwrapped'] .env-stamp {
+  opacity: 0;
+}
+
+.envelope-svg[data-stage='unwrapped'] .env-sig {
+  opacity: 1;
 }
 
 /* ── Status display ─────────────────────────────────────────── */
@@ -495,16 +707,6 @@ select {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   margin: var(--space-3) 0;
-}
-
-/* ── Animations ─────────────────────────────────────────────── */
-@keyframes move-pill {
-  0% {
-    transform: translateX(-70%);
-  }
-  100% {
-    transform: translateX(0%);
-  }
 }
 
 /* ── Reduced motion ─────────────────────────────────────────── */
