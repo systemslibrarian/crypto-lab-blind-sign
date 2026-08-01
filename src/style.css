@@ -425,6 +425,38 @@ main {
   word-break: break-word;
 }
 
+/* ── ROS caveat: a stated guarantee that does not hold ──────── */
+/* Same shape as .why-callout, but keyed to danger so a broken
+   assumption never reads as a friendly aside. */
+.ros-callout {
+  margin-top: var(--space-4);
+  border: 1px solid var(--color-danger);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  background-color: color-mix(in srgb, var(--color-danger) 10%, var(--color-card));
+}
+
+.ros-callout p {
+  color: var(--color-text);
+  margin: 0 0 var(--space-2);
+  font-size: 0.92rem;
+}
+
+.ros-callout p:last-child {
+  margin-bottom: 0;
+}
+
+.ros-sibling {
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
+.cell-alarm {
+  color: var(--color-danger);
+}
+
 .why-punch {
   font-weight: 600;
 }

@@ -420,6 +420,19 @@ function renderExhibits(): void {
           the same four moves as Exhibit 1, done with point addition instead of modular multiplication. When you unblind
           <code>s = s0 + &alpha;</code>, the blinders cancel exactly as <code>r</code> did.</p>
       </div>
+
+      <div class="ros-callout" role="note" aria-label="Blind Schnorr is broken under concurrent sessions">
+        <h3 class="why-title">Before you reach for this: concurrent blind Schnorr is broken</h3>
+        <p>This exhibit runs <strong>one</strong> signing session at a time, and that single-session case is fine.
+          But blind Schnorr's unforgeability does <em>not</em> reduce to the discrete logarithm problem &mdash; it
+          reduces to the <strong>ROS assumption</strong>, and
+          <a href="https://eprint.iacr.org/2020/945" target="_blank" rel="noopener noreferrer">Benhamouda, Lepoint,
+          Loss, Orr&ugrave; and Raykova (EUROCRYPT 2021)</a> solve ROS in polynomial time. An adversary allowed
+          roughly <strong>256 concurrent sessions</strong> against an Ed25519 signer walks away with
+          <strong>257 valid signatures</strong> &mdash; one more than the signer issued &mdash; using linear algebra
+          and no search. Exhibit 7 explains the assumption and the attack in full.</p>
+      </div>
+
       <div class="button-row" role="group" aria-label="Schnorr blind actions">
         <button class="btn primary" id="schnorr-run" aria-label="Run the blind Schnorr signature flow">Run Blind Schnorr</button>
         <button class="btn danger" id="schnorr-tamper" aria-label="Tamper with the signature scalar and re-verify" disabled>Tamper &amp; re-verify</button>
@@ -450,11 +463,40 @@ function renderExhibits(): void {
           <tbody>
             <tr><td>Total demo runtime</td><td id="cmp-rsa-time">&mdash;</td><td id="cmp-ec-time">&mdash;</td></tr>
             <tr><td>Public key size</td><td>~256 bytes modulus</td><td>32 bytes</td></tr>
-            <tr><td>Security margin model</td><td>Integer factorization hardness</td><td>Discrete log on Edwards curve</td></tr>
+            <tr><td>Security margin model</td><td>One-more-RSA-inversion assumption (implies factoring is hard, but is a stronger assumption)</td><td><strong>Not</strong> discrete log. Blind Schnorr unforgeability rests on the <strong>ROS assumption</strong>, which is <em>false</em> &mdash; solvable in polynomial time.</td></tr>
+            <tr><td>Unforgeable under concurrent signing?</td><td>Yes &mdash; the one-more-RSA-inversion assumption is stated with concurrent oracle access, so the proof already covers it</td><td class="cell-alarm"><strong>No</strong> &mdash; broken by the ROS attack. See the note below.</td></tr>
             <tr><td>Verification result</td><td id="cmp-rsa-ok">&mdash;</td><td id="cmp-ec-ok">&mdash;</td></tr>
           </tbody>
         </table>
       </div>
+
+      <div class="ros-callout" role="note" aria-label="The ROS attack breaks concurrent blind Schnorr">
+        <h3 class="why-title">The assumption behind the Schnorr column &mdash; and why it does not hold</h3>
+        <p>It is tempting to write "discrete log" in that row, because that is what plain, non-blind Schnorr
+          rests on. <strong>Blind Schnorr unforgeability does not follow from the discrete logarithm
+          assumption.</strong> Blinding hands the adversary something plain Schnorr never does: they choose
+          <code>&alpha;</code> and <code>&beta;</code> <em>after</em> seeing the signer's commitment
+          <code>R0</code>, and they may keep many signing sessions open at once. Forgery then reduces to the
+          <strong>ROS problem</strong> &mdash; Random inhomogeneities in an Overdetermined Solvable system of
+          linear equations &mdash; so blind Schnorr is unforgeable only if ROS is hard.</p>
+        <p>ROS is not hard. <a href="https://eprint.iacr.org/2020/945" target="_blank" rel="noopener noreferrer">Benhamouda,
+          Lepoint, Loss, Orr&ugrave; and Raykova, "On the (in)security of ROS" (EUROCRYPT 2021, best-paper
+          award)</a> solve ROS in <strong>polynomial time</strong> for any dimension greater than
+          <code>log p</code>. On Ed25519 that is on the order of <strong>256 concurrent signing sessions</strong>,
+          and it involves no search whatsoever &mdash; the forgery falls out of linear algebra. The headline result
+          is <strong>&#8467; sessions in, &#8467;+1 signatures out</strong>: one more signature than the signer
+          ever issued, which is exactly what a one-more-forgery is. Before that, Wagner's generalised-birthday
+          algorithm already gave a sub-exponential attack at any dimension; ROS made it polynomial.</p>
+        <p class="why-punch">The honest version of that cell reads: <em>blind Schnorr as shown here is
+          unforgeable only if signing sessions are strictly sequential, or capped far below the ROS
+          dimension.</em> That is why deployed designs reach for something else &mdash; Clause Blind Schnorr,
+          blind BLS, or rate-limited issuance &mdash; instead of trusting a bare discrete-log intuition. Exhibit 6
+          runs a <strong>single, non-concurrent</strong> session, which is precisely the case ROS leaves alone.</p>
+        <p class="ros-sibling">The ROS attack implemented and run for real, at the full 256-bit width with
+          nothing reduced, is the centrepiece of the sibling demo
+          <a href="https://systemslibrarian.github.io/crypto-lab-musig-gate/" target="_blank" rel="noopener noreferrer">crypto-lab-musig-gate</a>.</p>
+      </div>
+
       <pre id="compare-log" role="log" aria-label="Comparison output log"></pre>
     </div>
   `
