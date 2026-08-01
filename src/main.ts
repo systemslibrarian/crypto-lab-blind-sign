@@ -333,8 +333,8 @@ function renderExhibits(): void {
     <div class="card">
       <h2>Exhibit 3 &mdash; Chaum's E-Cash</h2>
       <p>Issue a blind-signed coin, then spend it. The merchant runs <strong>two independent checks</strong>: the bank's
-        signature must verify (unforgeability) <em>and</em> the serial must be unseen (no double spend). DigiCash launched
-        in 1989; the privacy worked, the economics did not.</p>
+        signature must verify (unforgeability) <em>and</em> the serial must be unseen (no double spend). Chaum's DigiCash
+        made its first ecash payment over a computer network in 1994; the privacy worked, the economics did not.</p>
       <div class="button-row" role="group" aria-label="E-Cash actions">
         <button class="btn primary" id="cash-issue" aria-label="Issue a new blind-signed coin">Issue Coin</button>
         <button class="btn" id="cash-spend" aria-label="Spend the coin at a merchant" disabled>Spend Coin</button>
@@ -715,8 +715,14 @@ function wireProtocolExhibit(): void {
       ].join('\n');
     }
     setVerdict('protocol-verdict', ok, ok ? 'VALID' : 'REJECTED');
-    status.textContent = 'Tampered signature rejected — this is unforgeability.';
-    announce('Tampered signature rejected. Verification failed as expected.');
+    status.textContent = ok
+      ? 'Tampered signature ACCEPTED — the verification equation did not reject it.'
+      : 'Tampered signature rejected — this is unforgeability.';
+    announce(
+      ok
+        ? 'Tampered signature accepted. Verification did not fail.'
+        : 'Tampered signature rejected. Verification failed as expected.'
+    );
   });
 }
 
@@ -846,11 +852,15 @@ function wireRfc9474Exhibit(): void {
         '',
         `tampered signature (1 bit flipped) = ${shortStr(bytesToHex(tampered))}`,
         `native crypto.subtle.verify → ${ok}`,
-        'The browser rejects the altered signature: unforgeability.'
+        ok
+          ? 'The browser ACCEPTED the altered signature — that should be impossible.'
+          : 'The browser rejects the altered signature: unforgeability.'
       ].join('\n');
       setVerdict('rfc-verdict', ok, ok ? 'VALID' : 'REJECTED');
-      status.textContent = 'Tampered signature rejected by the native verifier.';
-      announce('Tampered signature rejected.');
+      status.textContent = ok
+        ? 'Tampered signature ACCEPTED by the native verifier — unexpected.'
+        : 'Tampered signature rejected by the native verifier.';
+      announce(ok ? 'Tampered signature accepted — unexpected.' : 'Tampered signature rejected.');
     })
   );
 }
@@ -966,12 +976,16 @@ function wireCashExhibit(): void {
       const signature = randomBigIntBelow(issuer.publicKey.n);
       const sigOk = await verifyMessageSignature(issuer.publicKey, serial, signature);
       setVerdict('cash-verdict', sigOk, sigOk ? 'ACCEPTED' : 'REJECTED');
-      status.textContent = 'Forged coin rejected — signature does not verify.';
-      announce('Forged coin rejected. Signature invalid.');
+      status.textContent = sigOk
+        ? 'Forged coin ACCEPTED — the signature check passed on a coin the bank never signed.'
+        : 'Forged coin rejected — signature does not verify.';
+      announce(sigOk ? 'Forged coin accepted — unexpected.' : 'Forged coin rejected. Signature invalid.');
       log.textContent = appendLines(log.textContent, [
         `Spend forged ${serial}`,
         `  signature valid?  ${sigOk}  (no bank key → cannot forge)`,
-        '  → rejected before the serial is even checked.'
+        sigOk
+          ? '  → ACCEPTED. That should be impossible without the bank key.'
+          : '  → rejected before the serial is even checked.'
       ]);
     })
   );
@@ -1060,12 +1074,16 @@ function wireVotingExhibit(): void {
       const signature = randomBigIntBelow(issuer.publicKey.n);
       const sigOk = await verifyMessageSignature(issuer.publicKey, id, signature);
       setVerdict('vote-verdict', sigOk, sigOk ? 'COUNTED' : 'REJECTED');
-      status.textContent = 'Forged token rejected — not signed by the authority.';
-      announce('Forged ballot token rejected.');
+      status.textContent = sigOk
+        ? 'Forged token COUNTED — the eligibility check passed on an unsigned token.'
+        : 'Forged token rejected — not signed by the authority.';
+      announce(sigOk ? 'Forged ballot token accepted — unexpected.' : 'Forged ballot token rejected.');
       log.textContent = appendLines(log.textContent, [
         `Submit vote with forged ${id}`,
         `  token signature valid?  ${sigOk}  (no authority key → cannot forge)`,
-        '  → rejected; ballot stuffing prevented.'
+        sigOk
+          ? '  → COUNTED. Ballot stuffing was not prevented.'
+          : '  → rejected; ballot stuffing prevented.'
       ]);
     })
   );
@@ -1122,7 +1140,9 @@ function wireCredentialExhibit(): void {
       log.textContent = appendLines(log.textContent, [
         `Present "${cred.claim}"`,
         `  issuer signature valid?  ${ok}`,
-        '  → claim accepted; the verifier still cannot identify the subject.'
+        ok
+          ? '  → claim accepted; the verifier still cannot identify the subject.'
+          : '  → claim rejected; the issuer signature did not verify.'
       ]);
     })
   );
@@ -1139,12 +1159,16 @@ function wireCredentialExhibit(): void {
       const signature = cred ? cred.signature : randomBigIntBelow(iss.publicKey.n);
       const ok = await verifyMessageSignature(iss.publicKey, forgedClaim, signature);
       setVerdict('cred-verdict', ok, ok ? 'VALID' : 'REJECTED');
-      status.textContent = 'Altered claim rejected — signature is bound to the exact attribute.';
-      announce('Forged credential claim rejected.');
+      status.textContent = ok
+        ? 'Altered claim ACCEPTED — the signature was not bound to the exact attribute.'
+        : 'Altered claim rejected — signature is bound to the exact attribute.';
+      announce(ok ? 'Forged credential claim accepted — unexpected.' : 'Forged credential claim rejected.');
       log.textContent = appendLines(log.textContent, [
         `Present altered "${forgedClaim}" reusing the over18 signature`,
         `  issuer signature valid?  ${ok}  (signature is bound to the signed claim)`,
-        '  → rejected; attributes cannot be upgraded.'
+        ok
+          ? '  → ACCEPTED. The attribute was successfully upgraded.'
+          : '  → rejected; attributes cannot be upgraded.'
       ]);
     })
   );
@@ -1199,11 +1223,15 @@ function wireSchnorrExhibit(): void {
     log.textContent = appendLines(log.textContent, [
       `Tampered s+1 = ${shortStr(tampered)}`,
       `verify: (s+1)·G == R' + c·P  →  ${ok}`,
-      'Altering the scalar breaks the curve equation: rejected.'
+      ok
+        ? 'The curve equation still held after altering the scalar — that should be impossible.'
+        : 'Altering the scalar breaks the curve equation: rejected.'
     ]);
     setVerdict('schnorr-verdict', ok, ok ? 'VALID' : 'REJECTED');
-    status.textContent = 'Tampered Schnorr signature rejected.';
-    announce('Tampered Schnorr signature rejected.');
+    status.textContent = ok
+      ? 'Tampered Schnorr signature ACCEPTED — unexpected.'
+      : 'Tampered Schnorr signature rejected.';
+    announce(ok ? 'Tampered Schnorr signature accepted — unexpected.' : 'Tampered Schnorr signature rejected.');
   });
 }
 
@@ -1244,7 +1272,13 @@ function wireCompareExhibit(): void {
         'Most RSA time is keypair generation; both verify in well under a millisecond.'
       ].join('\n');
 
-      announce(`Comparison complete. RSA: ${rsaMs.toFixed(0)}ms, EC: ${ecMs.toFixed(0)}ms. Both verified.`);
+      const bothOk = rsaOk && ec.verified;
+      announce(
+        `Comparison complete. RSA: ${rsaMs.toFixed(0)}ms, EC: ${ecMs.toFixed(0)}ms. ` +
+          (bothOk
+            ? 'Both verified.'
+            : `RSA verified: ${rsaOk}. EC verified: ${ec.verified}.`)
+      );
     })
   );
 }
