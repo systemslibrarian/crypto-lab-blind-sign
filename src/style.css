@@ -6,6 +6,12 @@
   --color-bg-elevated: #0f1f33;
   --color-card: #132840;
   --color-border: #2a3f5f;
+  /* Control boundaries only (buttons, tab buttons, theme toggle, select). Those
+     controls are filled with --color-bg-elevated, which sits at 1.00-1.13:1
+     against the card behind them, so the border is the sole boundary and WCAG 2.1
+     SC 1.4.11 requires 3:1. --color-border stays for decorative rules (card
+     outlines, dividers, tables, fieldset frames). */
+  --color-border-strong: #4d74af;
   --color-text: #e7eff8;
   --color-text-muted: #9ab1c9;
   --color-primary: #2dd4bf;
@@ -39,6 +45,7 @@
   --color-bg-elevated: #ffffff;
   --color-card: #ffffff;
   --color-border: #c9d8eb;
+  --color-border-strong: #658fc6;
   --color-text: #11243a;
   --color-text-muted: #4a617a;
   --color-primary: #115e59;
@@ -129,7 +136,7 @@ img, svg { display: block; max-width: 100%; }
   width: var(--tap-min);
   height: var(--tap-min);
   border-radius: 50%;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   background-color: var(--color-bg-elevated);
   color: var(--color-text);
   cursor: pointer;
@@ -160,7 +167,7 @@ img, svg { display: block; max-width: 100%; }
 }
 
 .tab-btn {
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   background-color: var(--color-bg-elevated);
   color: var(--color-text);
   border-radius: var(--radius-lg);
@@ -238,7 +245,7 @@ main {
 }
 
 .btn {
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   background-color: var(--color-bg-elevated);
   color: var(--color-text);
   padding: var(--space-2) var(--space-4);
@@ -659,7 +666,7 @@ pre, code {
 }
 
 select {
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-lg);
   background-color: var(--color-bg-elevated);
   color: var(--color-text);
