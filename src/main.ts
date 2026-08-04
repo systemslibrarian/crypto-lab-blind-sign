@@ -312,11 +312,11 @@ function renderExhibits(): void {
       <div class="protocol-grid">
         <div class="card inset">
           <h3>Requester (Alice) View</h3>
-          <pre id="rfc-requester-log" aria-label="RFC 9474 requester transcript">Click 1 · Prepare &amp; Blind to start.</pre>
+          <pre id="rfc-requester-log" tabindex="0" role="group" aria-label="RFC 9474 requester transcript">Click 1 · Prepare &amp; Blind to start.</pre>
         </div>
         <div class="card inset">
           <h3>Signer (Issuer) View</h3>
-          <pre id="rfc-signer-log" aria-label="RFC 9474 signer transcript">Signer has not received a blinded request yet.</pre>
+          <pre id="rfc-signer-log" tabindex="0" role="group" aria-label="RFC 9474 signer transcript">Signer has not received a blinded request yet.</pre>
         </div>
       </div>
       <div class="result-row">
@@ -345,7 +345,7 @@ function renderExhibits(): void {
         <span class="status-line" id="cash-status" role="status" aria-live="polite"></span>
         <span class="verdict" id="cash-verdict" aria-live="polite"></span>
       </div>
-      <pre id="cash-log" role="log" aria-label="E-Cash transaction log"></pre>
+      <pre id="cash-log" tabindex="0" role="log" aria-label="E-Cash transaction log"></pre>
     </div>
   `
   );
@@ -374,7 +374,7 @@ function renderExhibits(): void {
         <span class="status-line" id="vote-status" role="status" aria-live="polite"></span>
         <span class="verdict" id="vote-verdict" aria-live="polite"></span>
       </div>
-      <pre id="vote-log" role="log" aria-label="Voting transcript"></pre>
+      <pre id="vote-log" tabindex="0" role="log" aria-label="Voting transcript"></pre>
     </div>
   `
   );
@@ -396,7 +396,7 @@ function renderExhibits(): void {
         <span class="status-line" id="cred-status" role="status" aria-live="polite"></span>
         <span class="verdict" id="cred-verdict" aria-live="polite"></span>
       </div>
-      <pre id="cred-log" role="log" aria-label="Credential transcript"></pre>
+      <pre id="cred-log" tabindex="0" role="log" aria-label="Credential transcript"></pre>
       <p class="compare-note">Compared with BBS+ and W3C Verifiable Credential stacks, blind signatures prioritize issuer unlinkability at issuance time.</p>
     </div>
   `
@@ -441,7 +441,7 @@ function renderExhibits(): void {
         <span class="status-line" id="schnorr-status" role="status" aria-live="polite"></span>
         <span class="verdict" id="schnorr-verdict" aria-live="polite"></span>
       </div>
-      <pre id="schnorr-log" aria-label="Schnorr blind signature transcript">Click Run Blind Schnorr to start.</pre>
+      <pre id="schnorr-log" tabindex="0" role="group" aria-label="Schnorr blind signature transcript">Click Run Blind Schnorr to start.</pre>
     </div>
   `
   );
@@ -497,7 +497,7 @@ function renderExhibits(): void {
           <a href="https://systemslibrarian.github.io/crypto-lab-musig-gate/" target="_blank" rel="noopener noreferrer">crypto-lab-musig-gate</a>.</p>
       </div>
 
-      <pre id="compare-log" role="log" aria-label="Comparison output log"></pre>
+      <pre id="compare-log" tabindex="0" role="log" aria-label="Comparison output log"></pre>
     </div>
   `
   );

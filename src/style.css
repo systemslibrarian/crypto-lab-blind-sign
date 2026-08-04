@@ -646,6 +646,13 @@ pre {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   max-height: 20rem;
+  /* Capping the height makes every transcript a scroll container once its
+     content grows, which is a WCAG 2.1.1 keyboard trap unless the container
+     itself is focusable. Each transcript therefore carries `tabindex="0"` in
+     the markup that renders it (see renderExhibits in src/main.ts); do not drop
+     it. Naming those wrappers as `role="region"` landmarks instead is a trap of
+     its own — it churns the accessibility tree on every re-render — so the fix
+     stays at the tabindex. */
   overflow-y: auto;
 }
 
