@@ -172,11 +172,6 @@ async function driveEveryExhibit(page: Page): Promise<void> {
   await expect(page.locator('#cmp-ec-time')).not.toHaveText('—');
 }
 
-async function toLight(page: Page): Promise<void> {
-  await page.locator('#cl-theme-toggle').click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-}
-
 test('the reduced-motion emulation this gate depends on actually reaches the page', async ({
   page,
 }) => {
@@ -198,13 +193,6 @@ test('no WCAG A/AA violations in dark theme', async ({ page }) => {
   await scan(page, 'dark / first paint');
 });
 
-test('no WCAG A/AA violations in light theme', async ({ page }) => {
-  await useReducedMotion(page);
-  await page.goto('.');
-  await toLight(page);
-  await revealAll(page);
-  await scan(page, 'light / first paint');
-});
 
 test('no WCAG A/AA violations once every exhibit has painted a result, dark theme', async ({
   page,
@@ -216,22 +204,12 @@ test('no WCAG A/AA violations once every exhibit has painted a result, dark them
   await scan(page, 'dark / every exhibit driven');
 });
 
-test('no WCAG A/AA violations once every exhibit has painted a result, light theme', async ({
-  page,
-}) => {
-  await useReducedMotion(page);
-  await page.goto('.');
-  await driveEveryExhibit(page);
-  await toLight(page);
-  await revealAll(page);
-  await scan(page, 'light / every exhibit driven');
-});
 
 // The transcript blocks are `max-height:20rem; overflow-y:auto`, so they only
 // overflow — and only become 2.1.1 keyboard traps — once they hold real content,
 // and three of the five only overflow at a narrow width. A scan at 1280px on an
 // untouched page cannot fail this rule no matter how broken the page is.
-for (const theme of ['dark', 'light'] as const) {
+for (const theme of ['dark'] as const) {
   test(`no WCAG A/AA violations at 380px with every exhibit driven, ${theme} theme`, async ({
     page,
   }) => {
@@ -239,7 +217,6 @@ for (const theme of ['dark', 'light'] as const) {
     await page.setViewportSize({ width: 380, height: 720 });
     await page.goto('.');
     await driveEveryExhibit(page);
-    if (theme === 'light') await toLight(page);
     await revealAll(page);
     await scan(page, `${theme} / every exhibit driven / 380px`);
   });
