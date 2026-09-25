@@ -44,7 +44,7 @@ describe('RSA blind signature', () => {
     expect(request.blindedMessage).toBe(expected);
   });
 
-  it('rejects a tampered signature (unforgeability)', async () => {
+  it('rejects a tampered signature', async () => {
     const issuer = await createRsaIssuer();
     const request = await createBlindRequest('coin-123', issuer.publicKey);
     const blindedSig = issuer.signBlinded(request.blindedMessage);

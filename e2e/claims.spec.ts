@@ -171,7 +171,7 @@ test('toy mode: tampering adds one to s, the verifier lands somewhere else, and 
   expect(check).not.toBe(m);
   expect(req).toMatch(/verify: \(s\+1\)\^e mod n[^\n]*→\s+false/);
   await expect(page.locator('#protocol-status')).toHaveText(
-    'Tampered signature rejected — this is unforgeability.',
+    'Tampered signature rejected — this checks one invalid input, not every forgery attack.',
   );
 });
 
@@ -244,7 +244,7 @@ test('real mode: the signer only ever holds blinded values, and the recovered si
   expect(BigInt(`0x${forgedDisp.slice(-12)}`)).toBe(BigInt(`0x${sDisp.slice(-12)}`) + 1n);
   expect(req).toMatch(/verify: \(s\+1\)\^e mod n == m\s+→\s+false/);
   await expect(page.locator('#protocol-status')).toHaveText(
-    'Tampered signature rejected — this is unforgeability.',
+    'Tampered signature rejected — this checks one invalid input, not every forgery attack.',
   );
 });
 
@@ -303,6 +303,21 @@ async function runRfc(page: Page): Promise<void> {
   await page.locator('#rfc-finalize').click();
   await expect(page.locator('#rfc-tamper')).toBeEnabled({ timeout: 60000 });
 }
+
+test('security boundary: blind RSA explains the 2026 raw-oracle attack in the RFC and comparison exhibits', async ({ page }) => {
+  await page.goto('.');
+  await page.locator('#tab-rfc9474').click();
+  const note = page.getByRole('note', { name: 'Blind RSA delayed-target attack model' });
+  await expect(note).toBeVisible();
+  await expect(note).toContainText('1024-bit');
+  await expect(note).toContainText('extrapolations, not demonstrated forgeries');
+  await expect(note.locator('a[href="https://eprint.iacr.org/2026/2131"]')).toBeVisible();
+
+  await page.locator('#tab-compare').click();
+  const concurrency = page.locator('.compare-table tr').filter({ hasText: 'Unforgeable under concurrent signing?' });
+  await expect(concurrency).toContainText('delayed-target attack');
+  await expect(concurrency.locator('td').nth(1)).not.toHaveText(/^Yes/);
+});
 
 test('RFC 9474 randomized: the browser natively accepts the finalized signature, and the issuer saw none of the padding', async ({
   page,
@@ -394,7 +409,7 @@ test('RFC 9474: the tamper flips exactly one bit of the real signature and the n
   expect(tampered.slice(0, -1)).toBe(finalSig.slice(0, -1));
   expect(parseInt(tampered.slice(-1), 16)).toBe(parseInt(finalSig.slice(-1), 16) ^ 1);
   expect(req).toMatch(/native crypto\.subtle\.verify → false/);
-  expect(req).toContain('The browser rejects the altered signature: unforgeability.');
+  expect(req).toContain('The browser rejects this altered signature; this check alone is not a security proof.');
   await expect(page.locator('#rfc-status')).toHaveText('Tampered signature rejected by the native verifier.');
 });
 

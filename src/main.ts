@@ -203,7 +203,7 @@ function renderExhibits(): void {
             <li><strong>Sign</strong> a value m: raise it to <code>d</code> &nbsp;→&nbsp; <code>s = m^d mod n</code>.</li>
             <li><strong>Verify</strong> a signature s: raise it to <code>e</code> and check it lands back on m &nbsp;→&nbsp; <code>s^e mod n == m</code>.</li>
           </ul>
-          <p>Only the holder of <code>d</code> can sign; anyone with <code>e</code> and <code>n</code> can verify. That asymmetry is what "unforgeable" means here.</p>
+          <p>The signer uses <code>d</code> to compute signatures; anyone with <code>e</code> and <code>n</code> can verify them. Passing this check shows a signature is valid, not that every forgery attack is impossible. The raw signing oracle exposed by blind RSA has its own security limits, explained in Exhibit 2.</p>
         </div>
       </details>
 
@@ -278,7 +278,7 @@ function renderExhibits(): void {
     'rfc9474',
     `
     <div class="card">
-      <h2>Exhibit 2 &mdash; RFC 9474 Blind RSA (production)</h2>
+      <h2>Exhibit 2 &mdash; RFC 9474 Blind RSA</h2>
       <p>The standardized blind-RSA protocol behind <strong>Privacy Pass</strong> and <strong>Apple Private Access
         Tokens</strong>. Where the textbook exhibit signs a bare <code>H(m) mod n</code>, RFC 9474 signs a full
         <strong>EMSA-PSS</strong> encoding (SHA-384 + MGF1 + salt). The finished signature is an ordinary RSASSA-PSS
@@ -287,13 +287,19 @@ function renderExhibits(): void {
 
       <div class="why-callout" role="note" aria-label="Why padding is added">
         <h3 class="why-title">Why the extra padding?</h3>
-        <p>Exhibit 1 signs a bare hash <code>H(m) mod n</code>. That textbook form is <em>malleable</em> — multiply two signatures and you get a third — and is not what real systems deploy. RFC 9474 first wraps the message in <strong>EMSA-PSS</strong>, standardized randomized padding, so the finished result is a normal RSA-PSS signature any library accepts. Same blinding trick you just learned, wrapped in a production-hardened envelope.</p>
+        <p>Exhibit 1 signs a bare hash <code>H(m) mod n</code>. That textbook form is <em>malleable</em> — multiply two signatures and you get a third — and is not what real systems deploy. RFC 9474 first wraps the message in <strong>EMSA-PSS</strong>, so the finished result is a normal RSA-PSS signature any library accepts. Blinding still makes the issuer apply raw RSA to a client-chosen blinded integer; PSS encoding of the eventual message does not remove that oracle.</p>
         <dl class="jargon-legend">
           <dt>SHA-384</dt><dd>the hash that compresses the message to a fixed-size digest.</dd>
           <dt>MGF1</dt><dd>a mask-generation function that stretches that digest to fill the padding.</dd>
           <dt>salt</dt><dd>fresh random bytes mixed in so signing the same message twice looks different (the "randomized" variant).</dd>
           <dt>message prefix</dt><dd>32 random bytes the requester prepends so the signer cannot recognize a chosen message.</dd>
         </dl>
+      </div>
+
+      <div class="why-callout" role="note" aria-label="Blind RSA delayed-target attack model">
+        <h3 class="why-title">What changed in 2026?</h3>
+        <p><a href="https://eprint.iacr.org/2026/2131" target="_blank" rel="noopener">Shea and colleagues (2026, ePrint 2026/2131)</a> used temporary access to a raw RSA signing oracle to forge later signatures without factoring the modulus. Blind RSA issuance supplies such an oracle: the issuer signs blinded values without seeing what they encode. The authors demonstrated a 1024-bit attack using 2<sup>32</sup> oracle queries and 1,380 CPU core-years; results for 2048- and 4096-bit keys are extrapolations, not demonstrated forgeries.</p>
+        <p>This is a delayed-target, offline-forgery setting. It does not show that ordinary padded RSA-PSS signing exposes a raw oracle, and it does not invalidate the one-more-RSA proof for its stated model. That proof alone does not give a concrete security margin for this separate attack model. This teaching demo cannot run the full-scale attack; see <a href="https://systemslibrarian.github.io/crypto-lab-rsa-forge/#oracle-without-factoring" target="_blank" rel="noopener">RSA Forge</a> for an interactive model.</p>
       </div>
 
       <fieldset class="variant-group">
@@ -333,7 +339,7 @@ function renderExhibits(): void {
     <div class="card">
       <h2>Exhibit 3 &mdash; Chaum's E-Cash</h2>
       <p>Issue a blind-signed coin, then spend it. The merchant runs <strong>two independent checks</strong>: the bank's
-        signature must verify (unforgeability) <em>and</em> the serial must be unseen (no double spend). Chaum's DigiCash
+        signature must verify (authenticity check) <em>and</em> the serial must be unseen (no double spend). Chaum's DigiCash
         made its first ecash payment over a computer network in 1994; the privacy worked, the economics did not.</p>
       <div class="button-row" role="group" aria-label="E-Cash actions">
         <button class="btn primary" id="cash-issue" aria-label="Issue a new blind-signed coin">Issue Coin</button>
@@ -463,8 +469,8 @@ function renderExhibits(): void {
           <tbody>
             <tr><td>Total demo runtime</td><td id="cmp-rsa-time">&mdash;</td><td id="cmp-ec-time">&mdash;</td></tr>
             <tr><td>Public key size</td><td>~256 bytes modulus</td><td>32 bytes</td></tr>
-            <tr><td>Security margin model</td><td>One-more-RSA-inversion assumption (implies factoring is hard, but is a stronger assumption)</td><td><strong>Not</strong> discrete log. Blind Schnorr unforgeability rests on the <strong>ROS assumption</strong>, which is <em>false</em> &mdash; solvable in polynomial time.</td></tr>
-            <tr><td>Unforgeable under concurrent signing?</td><td>Yes &mdash; the one-more-RSA-inversion assumption is stated with concurrent oracle access, so the proof already covers it</td><td class="cell-alarm"><strong>No</strong> &mdash; broken by the ROS attack. See the note below.</td></tr>
+            <tr><td>Security margin model</td><td>One-more-RSA proof in its stated model; separate delayed-target raw-oracle attack has lower estimated concrete margins (<a href="https://eprint.iacr.org/2026/2131" target="_blank" rel="noopener">ePrint 2026/2131</a>)</td><td><strong>Not</strong> discrete log. Blind Schnorr unforgeability rests on the <strong>ROS assumption</strong>, which is <em>false</em> &mdash; solvable in polynomial time.</td></tr>
+            <tr><td>Unforgeable under concurrent signing?</td><td>Under the one-more-RSA assumption in its proof model; the 2026 delayed-target attack uses temporary raw-oracle access and later offline forgery, so concurrency alone is not a complete security assessment</td><td class="cell-alarm"><strong>No</strong> &mdash; broken by the ROS attack. See the note below.</td></tr>
             <tr><td>Verification result</td><td id="cmp-rsa-ok">&mdash;</td><td id="cmp-ec-ok">&mdash;</td></tr>
           </tbody>
         </table>
@@ -717,7 +723,7 @@ function wireProtocolExhibit(): void {
     setVerdict('protocol-verdict', ok, ok ? 'VALID' : 'REJECTED');
     status.textContent = ok
       ? 'Tampered signature ACCEPTED — the verification equation did not reject it.'
-      : 'Tampered signature rejected — this is unforgeability.';
+      : 'Tampered signature rejected — this checks one invalid input, not every forgery attack.';
     announce(
       ok
         ? 'Tampered signature accepted. Verification did not fail.'
@@ -854,7 +860,7 @@ function wireRfc9474Exhibit(): void {
         `native crypto.subtle.verify → ${ok}`,
         ok
           ? 'The browser ACCEPTED the altered signature — that should be impossible.'
-          : 'The browser rejects the altered signature: unforgeability.'
+          : 'The browser rejects this altered signature; this check alone is not a security proof.'
       ].join('\n');
       setVerdict('rfc-verdict', ok, ok ? 'VALID' : 'REJECTED');
       status.textContent = ok
