@@ -427,10 +427,10 @@ function renderExhibits(): void {
           <code>s = s0 + &alpha;</code>, the blinders cancel exactly as <code>r</code> did.</p>
       </div>
 
-      <div class="ros-callout" role="note" aria-label="Blind Schnorr is broken under concurrent sessions">
-        <h3 class="why-title">Before you reach for this: concurrent blind Schnorr is broken</h3>
+      <div class="ros-callout" role="note" aria-label="The textbook blind Schnorr protocol shown here is vulnerable under concurrent issuance">
+        <h3 class="why-title">The textbook blind Schnorr protocol shown here is vulnerable under concurrent issuance</h3>
         <p>This exhibit runs <strong>one</strong> signing session at a time, and that single-session case is fine.
-          But blind Schnorr's unforgeability does <em>not</em> reduce to the discrete logarithm problem &mdash; it
+          But this textbook protocol's unforgeability does <em>not</em> reduce to the discrete logarithm problem &mdash; it
           reduces to the <strong>ROS assumption</strong>, and
           <a href="https://eprint.iacr.org/2020/945" target="_blank" rel="noopener noreferrer">Benhamouda, Lepoint,
           Loss, Orr&ugrave; and Raykova (EUROCRYPT 2021)</a> solve ROS in polynomial time. An adversary allowed
@@ -464,7 +464,7 @@ function renderExhibits(): void {
       <div class="table-wrap">
         <table class="compare-table" aria-label="Comparison of RSA and EC blind signature characteristics">
           <thead>
-            <tr><th scope="col">Metric</th><th scope="col">RSA Blind</th><th scope="col">Schnorr Blind (Ed25519)</th></tr>
+            <tr><th scope="col">Metric</th><th scope="col">RSA Blind</th><th scope="col">Textbook Schnorr Blind (Ed25519)</th></tr>
           </thead>
           <tbody>
             <tr><td>Total demo runtime</td><td id="cmp-rsa-time">&mdash;</td><td id="cmp-ec-time">&mdash;</td></tr>
@@ -476,10 +476,10 @@ function renderExhibits(): void {
         </table>
       </div>
 
-      <div class="ros-callout" role="note" aria-label="The ROS attack breaks concurrent blind Schnorr">
+      <div class="ros-callout" role="note" aria-label="The ROS attack breaks concurrent issuance in the textbook protocol shown here">
         <h3 class="why-title">The assumption behind the Schnorr column &mdash; and why it does not hold</h3>
         <p>It is tempting to write "discrete log" in that row, because that is what plain, non-blind Schnorr
-          rests on. <strong>Blind Schnorr unforgeability does not follow from the discrete logarithm
+          rests on. <strong>This textbook blind Schnorr protocol's unforgeability does not follow from the discrete logarithm
           assumption.</strong> Blinding hands the adversary something plain Schnorr never does: they choose
           <code>&alpha;</code> and <code>&beta;</code> <em>after</em> seeing the signer's commitment
           <code>R0</code>, and they may keep many signing sessions open at once. Forgery then reduces to the
@@ -495,12 +495,27 @@ function renderExhibits(): void {
           algorithm already gave a sub-exponential attack at any dimension; ROS made it polynomial.</p>
         <p class="why-punch">The honest version of that cell reads: <em>blind Schnorr as shown here is
           unforgeable only if signing sessions are strictly sequential, or capped far below the ROS
-          dimension.</em> That is why deployed designs reach for something else &mdash; Clause Blind Schnorr,
-          blind BLS, or rate-limited issuance &mdash; instead of trusting a bare discrete-log intuition. Exhibit 6
+          dimension.</em> Limiting concurrency changes the attack model; it is not a general production-security
+          guarantee. Exhibit 6
           runs a <strong>single, non-concurrent</strong> session, which is precisely the case ROS leaves alone.</p>
         <p class="ros-sibling">The ROS attack implemented and run for real, at the full 256-bit width with
           nothing reduced, is the centrepiece of the sibling demo
           <a href="https://systemslibrarian.github.io/crypto-lab-musig-gate/" target="_blank" rel="noopener noreferrer">crypto-lab-musig-gate</a>.</p>
+      </div>
+
+      <div class="why-callout" role="note" aria-label="Research variants of blind Schnorr with conditional concurrent-security proofs">
+        <h3 class="why-title">Research update: different protocols can support concurrent issuance</h3>
+        <p><a href="https://eprint.iacr.org/2026/2276" target="_blank" rel="noopener noreferrer">Fuchsbauer,
+          Regen and Sulyok, ePrint 2026/2276</a> (September 30, 2026, <strong>preprint</strong>) introduce
+          <strong>Schnorr<sup>2</sup></strong> and <strong>Okamoto-Schnorr<sup>2</sup></strong>, with conditional
+          proofs of concurrent one-more unforgeability. Both proofs use the <strong>algebraic group model</strong>
+          (the adversary supplies algebraic representations of its group elements) and the
+          <strong>random oracle model</strong> (hashing is idealized). Schnorr<sup>2</sup> additionally assumes
+          algebraic one-more discrete-logarithm hardness; Okamoto-Schnorr<sup>2</sup> assumes discrete-logarithm hardness.</p>
+        <p>These are different protocols: the signer sends two commitments and computes a nonlinear response.
+          <strong>This lab does not implement either variant.</strong> Their proofs do not repair the textbook
+          protocol above, establish a new standard, or certify an implementation for deployment. The ROS warning
+          remains applicable to the one-commitment protocol actually run in Exhibit 6.</p>
       </div>
 
       <pre id="compare-log" tabindex="0" role="log" aria-label="Comparison output log"></pre>

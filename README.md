@@ -25,6 +25,12 @@ The protocol exhibit runs blind → sign → unblind → verify **one real step 
 
 This is a delayed-target RSA setting, distinct from the one-more-RSA assumption used in the RFC 9474 proof. The paper does not invalidate that proof, but the proof does not by itself quantify this separate oracle-assisted threat. Ordinary padded RSA-PSS signing without a raw signing oracle is outside the attack model. For an interactive explanation, see [RSA Forge](https://systemslibrarian.github.io/crypto-lab-rsa-forge/#oracle-without-factoring); this lab shows the issuance primitive, not the full-scale attack. The authors suggest shorter issuer-key epochs, larger keys, and eventually protocols with suitable zero-knowledge proofs or post-quantum replacements; these are deployment considerations, not changes to this educational implementation.
 
+## Blind Schnorr concurrency and new research
+
+Exhibit 6 implements the textbook, one-commitment blind Schnorr protocol over Ed25519. It remains vulnerable to ROS attacks under concurrent issuance; the comparison table describes this implementation, not every blind Schnorr variant. Limiting concurrency is not a general production-security guarantee.
+
+[Fuchsbauer, Regen and Sulyok, ePrint 2026/2276](https://eprint.iacr.org/2026/2276) (preprint, September 30, 2026) introduce Schnorr² and Okamoto-Schnorr² with conditional proofs of concurrent one-more unforgeability in the algebraic group and random oracle models. Schnorr² assumes algebraic one-more discrete-logarithm hardness; Okamoto-Schnorr² assumes discrete-logarithm hardness. These different protocols use two signer commitments and a nonlinear response. **Neither variant is implemented here.** This research does not repair the textbook protocol or establish a new standard.
+
 ## What Can Go Wrong
 - Blinding factor reuse: reusing the same `r` across requests can create correlation across blinded messages and erode unlinkability.
 - Invalid blinding factor math: if `gcd(r, n) != 1`, unblinding fails and careless recovery logic can leak protocol state or cause signature rejection loops.
