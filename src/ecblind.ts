@@ -78,9 +78,10 @@ export async function runEcBlindSignatureDemo(message: string): Promise<EcBlindT
 }
 
 /**
- * Independently verify a blind Schnorr signature (R, s) on `message` under
- * public key P: checks s·G == R + H(R, P, m)·P. Returns false for any forged or
- * tampered (R, s, m, P) — this is what powers the tamper demonstration.
+ * Verify the teaching engine's blind Schnorr equation s·G == R + H(R, P, m)·P
+ * for canonical scalars and prime-order points with a nonidentity signer key.
+ * Malformed inputs and arithmetic errors return false. Equation verification
+ * does not establish security against the concurrent ROS attack in the README.
  */
 export function verifyEcBlindSignature(
   signatureRHex: string,
@@ -88,20 +89,27 @@ export function verifyEcBlindSignature(
   message: string,
   signatureSHex: string
 ): boolean {
-  let R: EdPoint;
-  let P: EdPoint;
-  let s: bigint;
   try {
-    R = ed25519.Point.fromHex(signatureRHex);
-    P = ed25519.Point.fromHex(publicKeyHex);
-    s = mod(BigInt(`0x${signatureSHex}`), CURVE_ORDER);
+    if (![signatureRHex, publicKeyHex, signatureSHex].every(
+      (value) => /^[0-9a-f]{64}$/i.test(value)
+    )) return false;
+    const R = ed25519.Point.fromHex(signatureRHex, false);
+    const P = ed25519.Point.fromHex(publicKeyHex, false);
+    const s = BigInt(`0x${signatureSHex}`);
+    // Do not reduce an input signature: s and s + order are distinct encodings.
+    // The signer samples nonzero scalars; identity/small-order keys do not
+    // belong to that protocol even if a caller can satisfy a trivial equation.
+    if (s >= CURVE_ORDER || P.isSmallOrder() || !P.isTorsionFree() || !R.isTorsionFree()) {
+      return false;
+    }
+    const c = hashChallenge(R, P, utf8(message));
+    // Zero is a valid scalar for group arithmetic; multiply() excludes it.
+    const left = s === 0n ? ed25519.Point.ZERO : BASE.multiply(s);
+    const right = R.add(c === 0n ? ed25519.Point.ZERO : P.multiply(c));
+    return left.equals(right);
   } catch {
     return false;
   }
-  const c = hashChallenge(R, P, utf8(message));
-  const left = BASE.multiply(s);
-  const right = R.add(P.multiply(c));
-  return left.equals(right);
 }
 
 function hashChallenge(R: EdPoint, P: EdPoint, message: Uint8Array): bigint {
