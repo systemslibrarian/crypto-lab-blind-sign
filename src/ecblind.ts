@@ -1,7 +1,7 @@
-import { ed25519 } from '@noble/curves/ed25519';
-import { sha512 } from '@noble/hashes/sha512';
+import { ed25519 } from '@noble/curves/ed25519.js';
+import { sha512 } from '@noble/hashes/sha2.js';
 
-const CURVE_ORDER = ed25519.CURVE.n;
+const CURVE_ORDER = ed25519.Point.Fn.ORDER;
 const BASE = ed25519.Point.BASE;
 type EdPoint = typeof BASE;
 
@@ -55,23 +55,23 @@ export async function runEcBlindSignatureDemo(message: string): Promise<EcBlindT
   const unblindedS = mod(partialSignature + alpha, CURVE_ORDER); // s
 
   const verified = verifyEcBlindSignature(
-    bytesToHex(blindedCommitment.toRawBytes()),
-    bytesToHex(signerPublic.toRawBytes()),
+    bytesToHex(blindedCommitment.toBytes()),
+    bytesToHex(signerPublic.toBytes()),
     message,
     toHexScalar(unblindedS)
   );
 
   return {
     messageText: message,
-    publicKeyHex: bytesToHex(signerPublic.toRawBytes()),
-    signerNonceCommitmentHex: bytesToHex(nonceCommitment.toRawBytes()),
+    publicKeyHex: bytesToHex(signerPublic.toBytes()),
+    signerNonceCommitmentHex: bytesToHex(nonceCommitment.toBytes()),
     alphaHex: toHexScalar(alpha),
     betaHex: toHexScalar(beta),
-    blindedCommitmentHex: bytesToHex(blindedCommitment.toRawBytes()),
+    blindedCommitmentHex: bytesToHex(blindedCommitment.toBytes()),
     challengeHex: toHexScalar(challenge),
     blindedChallengeHex: toHexScalar(blindedChallenge),
     partialSignatureHex: toHexScalar(partialSignature),
-    signatureRHex: bytesToHex(blindedCommitment.toRawBytes()),
+    signatureRHex: bytesToHex(blindedCommitment.toBytes()),
     signatureSHex: toHexScalar(unblindedS),
     verified
   };
@@ -105,14 +105,14 @@ export function verifyEcBlindSignature(
 }
 
 function hashChallenge(R: EdPoint, P: EdPoint, message: Uint8Array): bigint {
-  const input = concatBytes(R.toRawBytes(), P.toRawBytes(), message);
+  const input = concatBytes(R.toBytes(), P.toBytes(), message);
   const digest = sha512(input);
   return mod(bytesToBigInt(digest), CURVE_ORDER);
 }
 
 function randomScalar(): bigint {
   while (true) {
-    const bytes = ed25519.utils.randomPrivateKey();
+    const bytes = ed25519.utils.randomSecretKey();
     const scalar = mod(bytesToBigInt(bytes), CURVE_ORDER);
     if (scalar !== 0n) {
       return scalar;
