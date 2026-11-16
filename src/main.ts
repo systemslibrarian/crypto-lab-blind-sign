@@ -251,7 +251,7 @@ function renderExhibits(): void {
           <!-- Envelope (r) that wraps the message -->
           <g class="env-wrap" transform="translate(40,60)">
             <rect class="wrap-body" x="-22" y="-20" width="44" height="40" rx="6"></rect>
-            <text class="wrap-label" y="5" text-anchor="middle">m·r&#8319;</text>
+            <text class="wrap-label" y="5" text-anchor="middle">m·r&#7497;</text>
           </g>
           <!-- Signer's d-stamp -->
           <g class="env-stamp" transform="translate(170,60)">

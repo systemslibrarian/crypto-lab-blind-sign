@@ -256,6 +256,13 @@ test('the envelope walks idle → wrapped → stamped → unwrapped, and the ste
   const svg = page.locator('.envelope-svg');
   const stages: string[] = [];
 
+  // The envelope label must be the blinded value the protocol actually forms:
+  // m·r^e mod n (RFC 9474 § 4.2 Blind(): x = r^e mod n, then z = m·x mod n),
+  // matching the page's own transcript line "m' = m · r^e mod n". On this page
+  // n is the modulus, so a superscript n would name a different quantity.
+  await expect(page.locator('.wrap-label')).toHaveText('m·rᵉ');
+  await expect(page.locator('.wrap-label')).not.toHaveText('m·rⁿ');
+
   await expect(svg).toHaveAttribute('data-stage', 'idle');
   for (const id of ['#protocol-sign', '#protocol-unblind', '#protocol-verify', '#protocol-tamper']) {
     await expect(page.locator(id)).toBeDisabled();
