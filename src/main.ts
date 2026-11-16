@@ -27,8 +27,6 @@ import {
   type BlindResult
 } from './rfc9474';
 
-type Theme = 'dark' | 'light';
-
 const state = {
   ecash: {
     bank: null as RsaIssuer | null,
@@ -110,7 +108,6 @@ wireVotingExhibit();
 wireCredentialExhibit();
 wireSchnorrExhibit();
 wireCompareExhibit();
-setupThemeToggle();
 
 // ── Shared helpers ────────────────────────────────────────────
 function announce(message: string): void {
@@ -120,32 +117,6 @@ function announce(message: string): void {
     void region.offsetWidth;
     region.textContent = message;
   }
-}
-
-function setupThemeToggle(): void {
-  const button = document.getElementById('theme-toggle') as HTMLButtonElement | null;
-  const icon = document.getElementById('theme-icon');
-  if (!button) return;
-
-  const sync = (): void => {
-    const current = currentTheme();
-    if (icon) icon.textContent = current === 'dark' ? '🌙' : '☀️';
-    button.setAttribute('aria-label', current === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
-  };
-
-  button.addEventListener('click', () => {
-    const next: Theme = currentTheme() === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('theme', next);
-    sync();
-    announce(`Theme switched to ${next} mode`);
-  });
-
-  sync();
-}
-
-function currentTheme(): Theme {
-  return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
 }
 
 /** Renders a colored PASS / FAIL verdict into a verdict element. */
