@@ -519,7 +519,9 @@ function wireProtocolExhibit(): void {
     | { mode: 'toy'; m: bigint; r: bigint; toy: ToyBlindStep; signed?: boolean; unblinded?: boolean }
     | null = null;
 
+  let revision = 0;
   const resetRun = (): void => {
+    revision++;
     run = null;
     envelopeStage('idle');
     setVerdict('protocol-verdict', null, '');
@@ -540,8 +542,8 @@ function wireProtocolExhibit(): void {
   blindBtn.addEventListener(
     'click',
     withBusy(blindBtn, async () => {
-      setVerdict('protocol-verdict', null, '');
-      envelopeStage('idle');
+      resetRun();
+      const started = revision;
 
       if (protocolMode() === 'toy') {
         // Toy modulus n=3233 (=61·53), e=17, d=2753. A readable message and a
@@ -568,7 +570,9 @@ function wireProtocolExhibit(): void {
         status.textContent = 'Generating RSA keypair and blinding message…';
         announce('Generating RSA keypair and blinding message');
         const issuer = await createRsaIssuer();
+        if (started !== revision) return;
         const request = await createBlindRequest('Chaum blind signature request', issuer.publicKey);
+        if (started !== revision) return;
         run = { mode: 'real', issuer, request };
         requesterLog.textContent = [
           `m  = H(message) mod n = ${shortHex(request.messageRepresentative)}`,
@@ -745,9 +749,11 @@ function wireRfc9474Exhibit(): void {
     enable('rfc-tamper', false);
   };
 
-  // Changing the variant invalidates the current run.
+  let revision = 0;
+  // Changing the variant invalidates even a request still waiting on WebCrypto.
   for (const radio of document.querySelectorAll<HTMLInputElement>('input[name="rfc-variant"]')) {
     radio.addEventListener('change', () => {
+      revision++;
       run = null;
       resetSteps();
       setVerdict('rfc-verdict', null, '');
@@ -761,15 +767,22 @@ function wireRfc9474Exhibit(): void {
   blindBtn.addEventListener(
     'click',
     withBusy(blindBtn, async () => {
+      const started = ++revision;
+      run = null;
+      resetSteps();
+      signerLog.textContent = 'Signer has not received a blinded request yet.';
+      requesterLog.textContent = 'Preparing the new request…';
       const variant = selectedRfcVariant();
       status.textContent = 'Generating RSA-PSS keypair, EMSA-PSS encoding, and blinding…';
       announce('Preparing and blinding the message');
       setVerdict('rfc-verdict', null, '');
 
       const issuer = await createRfc9474Issuer();
+      if (started !== revision) return;
       const msg = new TextEncoder().encode('Privacy Pass token: redeem-once');
       const prepared = rfcPrepare(msg, variant);
       const blinded = await rfcBlind(issuer.publicKey, prepared.inputMsg, variant);
+      if (started !== revision) return;
       run = { variant, issuer, inputMsg: prepared.inputMsg, prefix: prepared.prefix, blinded };
 
       const saltLen = VARIANTS[variant].saltLen;
@@ -814,15 +827,19 @@ function wireRfc9474Exhibit(): void {
     'click',
     withBusy(finalizeBtn, async () => {
       if (!run || !run.blindSig) return;
+      const checking = ++revision;
       const { n, modulusLen } = run.issuer.publicKey;
       run.signature = rfcFinalize(run.blindSig, run.blinded.inv, n, modulusLen);
       const ok = await rfcVerify(run.issuer.publicKey, run.inputMsg, run.signature, run.variant);
+      if (checking !== revision) return;
       requesterLog.textContent = [
         requesterLog.textContent,
         '',
         `signature = blind_sig·r^-1 = ${shortStr(bytesToHex(run.signature))}`,
         `native crypto.subtle.verify (RSA-PSS) → ${ok}`,
-        'This is a standard RSASSA-PSS signature — the browser itself accepts it.'
+        ok
+          ? 'The browser verified this RSASSA-PSS signature.'
+          : 'The browser rejected this RSASSA-PSS signature.'
       ].join('\n');
       setVerdict('rfc-verdict', ok, ok ? 'VALID' : 'INVALID');
       status.textContent = `Finalized — natively verified ${ok ? 'valid' : 'invalid'}.`;
@@ -836,9 +853,11 @@ function wireRfc9474Exhibit(): void {
     'click',
     withBusy(tamperBtn, async () => {
       if (!run || !run.signature) return;
+      const checking = ++revision;
       const tampered = run.signature.slice();
       tampered[tampered.length - 1] ^= 0x01; // flip one bit
       const ok = await rfcVerify(run.issuer.publicKey, run.inputMsg, tampered, run.variant);
+      if (checking !== revision) return;
       requesterLog.textContent = [
         requesterLog.textContent,
         '',

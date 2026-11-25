@@ -710,3 +710,42 @@ test('all seven exhibits are reachable, exactly one at a time, by click and by a
   await page.locator('#tab-protocol').press('End');
   await expect(page.locator('#tab-compare')).toHaveAttribute('aria-selected', 'true');
 });
+
+test('changing the number mode or RFC variant retires a pending request', async ({ page }) => {
+  await page.addInitScript(() => {
+    const generate = crypto.subtle.generateKey.bind(crypto.subtle);
+    const gate = window as Window & { holdKey?: boolean; releaseKey?: () => void };
+    Object.defineProperty(crypto.subtle, 'generateKey', {value: async (...args: Parameters<typeof generate>) => {
+      if (gate.holdKey) {
+        gate.holdKey = false;
+        await new Promise<void>(resolve => { gate.releaseKey = resolve; });
+      }
+      return generate(...args);
+    }});
+  });
+  await page.goto('.');
+  for (const [tab, blind, next, group, value] of [
+    ['protocol','protocol-blind','protocol-sign','protocol-mode','toy'],
+    ['rfc9474','rfc-blind','rfc-sign','rfc-variant','RSABSSA-SHA384-PSSZERO-Deterministic'],
+  ]) {
+    await page.locator('#tab-' + tab).click();
+    await page.evaluate(() => Object.assign(window, { holdKey: true, releaseKey: undefined }));
+    await page.locator('#' + blind).click();
+    await page.waitForFunction(() => typeof Reflect.get(window, 'releaseKey') === 'function');
+    await page.locator(`input[name="${group}"][value="${value}"]`).check();
+    await page.evaluate(() => Reflect.get(window, 'releaseKey')());
+    await expect(page.locator('#' + blind)).not.toHaveAttribute('aria-busy', 'true');
+    await expect(page.locator('#' + next)).toBeDisabled();
+  }
+});
+
+test('RFC finalization describes an unsuccessful native check consistently', async ({ page }) => {
+  await page.goto('.');
+  await page.locator('#tab-rfc9474').click();
+  await page.locator('#rfc-blind').click();
+  await page.locator('#rfc-sign').click();
+  await page.evaluate(() => Object.defineProperty(crypto.subtle, 'verify', { value: async () => false }));
+  await page.locator('#rfc-finalize').click();
+  await expect(page.locator('#rfc-verdict')).toHaveText('INVALID');
+  await expect(page.locator('#rfc-requester-log')).toContainText('The browser rejected this RSASSA-PSS signature.');
+});
