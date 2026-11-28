@@ -250,7 +250,7 @@ function renderExhibits(): void {
     `
     <div class="card">
       <h2>Exhibit 2 &mdash; RFC 9474 Blind RSA</h2>
-      <p>The standardized blind-RSA protocol behind <strong>Privacy Pass</strong> and <strong>Apple Private Access
+      <p>RFC 9474 is an IRTF/CFRG Informational specification for the blind-RSA construction used in <strong>Privacy Pass</strong> and <strong>Apple Private Access
         Tokens</strong>. Where the textbook exhibit signs a bare <code>H(m) mod n</code>, RFC 9474 signs a full
         <strong>EMSA-PSS</strong> encoding (SHA-384 + MGF1 + salt). The finished signature is an ordinary RSASSA-PSS
         signature, so step 3 verifies it with the browser's own <code>crypto.subtle.verify</code> — an independent,
@@ -310,7 +310,7 @@ function renderExhibits(): void {
     <div class="card">
       <h2>Exhibit 3 &mdash; Chaum's E-Cash</h2>
       <p>Issue a blind-signed coin, then spend it. The merchant runs <strong>two independent checks</strong>: the bank's
-        signature must verify (authenticity check) <em>and</em> the serial must be unseen (no double spend). Chaum's DigiCash
+        signature must verify (authenticity check) <em>and</em> the serial must be unseen (no double spend). This single-mint model holds one signing key and its spent serials in memory. Reloading starts a new mint. Chaum's DigiCash
         made its first ecash payment over a computer network in 1994; the privacy worked, the economics did not.</p>
       <div class="button-row" role="group" aria-label="E-Cash actions">
         <button class="btn primary" id="cash-issue" aria-label="Issue a new blind-signed coin">Issue Coin</button>
@@ -360,13 +360,12 @@ function renderExhibits(): void {
     'credentials',
     `
     <div class="card">
-      <h2>Exhibit 5 &mdash; Anonymous Credentials</h2>
-      <p>The issuer blind-signs an attribute claim like &ldquo;over 18.&rdquo; The verifier checks the issuer's signature
-        on the exact claim — so a holder cannot swap in a stronger claim such as <code>over21=true</code> — yet learns
-        nothing that identifies the holder.</p>
+      <h2>Exhibit 5 &mdash; Self-Asserted Bearer Claims</h2>
+      <p>The requester supplies <code>over18=true</code>. The issuer signs the blinded message without checking anyone’s age.
+        The verifier checks the signature on those bytes. Anyone who holds a copy can present it. Editing the signed claim invalidates the signature.</p>
       <div class="button-row" role="group" aria-label="Credential actions">
-        <button class="btn primary" id="cred-issue" aria-label="Issue a blind-signed over-18 credential">Issue over-18 Credential</button>
-        <button class="btn" id="cred-present" aria-label="Present credential to verifier" disabled>Present Credential</button>
+        <button class="btn primary" id="cred-issue" aria-label="Sign a self-asserted over-18 claim">Sign over-18 claim</button>
+        <button class="btn" id="cred-present" aria-label="Present credential to verifier" disabled>Present signed claim</button>
         <button class="btn danger" id="cred-forge" aria-label="Present a forged credential claiming a different attribute" disabled>Present Forged Claim</button>
       </div>
       <div class="result-row">
@@ -374,7 +373,7 @@ function renderExhibits(): void {
         <span class="verdict" id="cred-verdict" aria-live="polite"></span>
       </div>
       <pre id="cred-log" tabindex="0" role="log" aria-label="Credential transcript"></pre>
-      <p class="compare-note">Compared with BBS+ and W3C Verifiable Credential stacks, blind signatures prioritize issuer unlinkability at issuance time.</p>
+      <p class="compare-note">Verified eligibility would require an issuance policy that checks the attribute and binds the issued token to the approved statement.</p>
     </div>
   `
   );
@@ -400,7 +399,7 @@ function renderExhibits(): void {
 
       <div class="ros-callout" role="note" aria-label="The textbook blind Schnorr protocol shown here is vulnerable under concurrent issuance">
         <h3 class="why-title">The textbook blind Schnorr protocol shown here is vulnerable under concurrent issuance</h3>
-        <p>This exhibit runs <strong>one</strong> signing session at a time, and that single-session case is fine.
+        <p>This exhibit runs <strong>one</strong> signing session at a time. It checks a signature equation. A successful run does not establish security under concurrent issuance.
           But this textbook protocol's unforgeability does <em>not</em> reduce to the discrete logarithm problem &mdash; it
           reduces to the <strong>ROS assumption</strong>, and
           <a href="https://eprint.iacr.org/2020/945" target="_blank" rel="noopener noreferrer">Benhamouda, Lepoint,
@@ -1115,8 +1114,8 @@ function wireCredentialExhibit(): void {
   issueBtn.addEventListener(
     'click',
     withBusy(issueBtn, async () => {
-      status.textContent = 'Issuing blind-signed credential…';
-      announce('Issuing blind-signed age credential');
+      status.textContent = 'Signing self-asserted claim…';
+      announce('Signing the requester’s self-asserted claim');
       setVerdict('cred-verdict', null, '');
 
       const iss = await issuer();
@@ -1125,11 +1124,11 @@ function wireCredentialExhibit(): void {
       const signature = unblindSignature(blindedSig, request.blindingFactor, iss.publicKey.n);
       state.credential.credential = { claim: VALID_CLAIM, signature };
 
-      status.textContent = 'Issuer produced a blind-signed age credential.';
-      announce('Age credential issued. Issuer cannot identify the holder.');
+      status.textContent = 'Issuer signed the claim. Age was not checked.';
+      announce('Blind-signed claim issued. Age was not checked.');
       log.textContent = [
-        'Claim issued: over18=true',
-        'Issuer signed only the blinded attribute request; it cannot identify the holder.'
+        'Requester supplied: over18=true',
+        'Issuer signed the blinded request without checking age or identity.'
       ].join('\n');
 
       enable('cred-present', true);
@@ -1146,13 +1145,13 @@ function wireCredentialExhibit(): void {
       const iss = await issuer();
       const ok = await verifyMessageSignature(iss.publicKey, cred.claim, cred.signature);
       setVerdict('cred-verdict', ok, ok ? 'VALID' : 'INVALID');
-      status.textContent = ok ? 'Verifier accepted the claim.' : 'Verifier rejected the claim.';
-      announce(ok ? 'Credential verified. Verifier cannot identify the subject.' : 'Credential rejected.');
+      status.textContent = ok ? 'Signature valid. Age and holder identity remain unverified.' : 'Verifier rejected the claim.';
+      announce(ok ? 'Signature verified. Age and holder identity remain unverified.' : 'Credential rejected.');
       log.textContent = appendLines(log.textContent, [
         `Present "${cred.claim}"`,
         `  issuer signature valid?  ${ok}`,
         ok
-          ? '  → claim accepted; the verifier still cannot identify the subject.'
+          ? '  → signature accepted on the presented bytes. Age and holder identity remain unverified.'
           : '  → claim rejected; the issuer signature did not verify.'
       ]);
     })
@@ -1179,7 +1178,7 @@ function wireCredentialExhibit(): void {
         `  issuer signature valid?  ${ok}  (signature is bound to the signed claim)`,
         ok
           ? '  → ACCEPTED. The attribute was successfully upgraded.'
-          : '  → rejected; attributes cannot be upgraded.'
+          : '  → rejected; this signature does not verify the edited claim.'
       ]);
     })
   );

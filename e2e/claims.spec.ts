@@ -581,7 +581,7 @@ test('credentials: the same signature that validates over18 fails on over21 — 
   let log = await text(page, '#cred-log');
   expect(log).toContain('Present "attribute:over18=true"');
   expect(log).toMatch(/issuer signature valid\?\s+true/);
-  await expect(page.locator('#cred-status')).toHaveText('Verifier accepted the claim.');
+  await expect(page.locator('#cred-status')).toHaveText('Signature valid. Age and holder identity remain unverified.');
 
   await page.locator('#cred-forge').click();
   await expect(page.locator('#cred-verdict')).toHaveText('REJECTED');
@@ -590,7 +590,7 @@ test('credentials: the same signature that validates over18 fails on over21 — 
   // only variable that changed is the claim, so the rejection is attributable.
   expect(log).toContain('Present altered "attribute:over21=true" reusing the over18 signature');
   expect(log).toMatch(/issuer signature valid\?\s+false\s+\(signature is bound to the signed claim\)/);
-  expect(log).toContain('→ rejected; attributes cannot be upgraded.');
+  expect(log).toContain('→ rejected; this signature does not verify the edited claim.');
   await expect(page.locator('#cred-status')).toHaveText(
     'Altered claim rejected — signature is bound to the exact attribute.',
   );
